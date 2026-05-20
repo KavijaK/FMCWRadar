@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Generated for the STM32F429 FMCW radar firmware" />
+  <meta name="dcterms.date" content="2026-05-19" />
+  <title>FMCW Radar Firmware Guide</title>
+  <style>
+    html {
+      font-size: 10pt;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">FMCW Radar Firmware Guide</h1>
+<p class="subtitle">CubeIDE build, flash, and source-code map</p>
+<p class="author">Generated for the STM32F429 FMCW radar firmware</p>
+<p class="date">2026-05-19</p>
+</header>
+<h1 id="what-you-have">1. What You Have</h1>
+<p>This firmware is for an STM32F429VETx board that captures FMCW radar
+ADC samples and streams them to a PC over USB High Speed.</p>
+<p>The important hardware chain is:</p>
+<pre class="text"><code>ADF4158 ramp + RF chain
+        -&gt; LTC1420 12-bit ADC
+        -&gt; STM32 DCMI peripheral
+        -&gt; DMA2 Stream 1 double-buffer capture
+        -&gt; SRAM frame ring
+        -&gt; USB OTG HS bulk IN endpoint
+        -&gt; Host PC</code></pre>
+<p>The CubeMX project at
+<code>C:\Users\karun\OneDrive\Desktop\FMCWRadarFirmware</code> was used
+as the pin map source. The actual firmware you should build is in:</p>
+<pre class="text"><code>C:\Users\karun\Downloads\FMCWCode\firmware</code></pre>
+<h1 id="can-you-use-stm32cubeide">2. Can You Use STM32CubeIDE?</h1>
+<p>Yes. You can open the <code>firmware</code> folder in CubeIDE.</p>
+<p>This repo is not a normal CubeMX-generated project where CubeMX owns
+<code>main.c</code>. It is a hand-written firmware project that uses
+STM32 HAL/CMSIS, plus a small <code>Makefile</code> wrapper so CubeIDE
+can build it.</p>
+<p>Do not press “Generate Code” from CubeMX into this folder. CubeMX
+would overwrite important architecture choices.</p>
+<p>The important CubeMX choices that were intentionally overridden
+are:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>CubeMX generated</th>
+<th>Firmware uses</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>180 MHz SYSCLK</td>
+<td>168 MHz SYSCLK</td>
+<td>Keeps TIM9 alignment math simple and matched to the
+architecture</td>
+</tr>
+<tr>
+<td>DCMI HSYNC low</td>
+<td>DCMI HSYNC high</td>
+<td>PA4 is held high after alignment</td>
+</tr>
+<tr>
+<td>DCMI falling PIXCLK</td>
+<td>Falling PIXCLK</td>
+<td>Updated per board bring-up request</td>
+</tr>
+<tr>
+<td>PE5 as GPIO input</td>
+<td>PE5 as TIM9_CH1 AF3</td>
+<td>Needed to align capture to ADF4158 MUXOUT</td>
+</tr>
+<tr>
+<td>USB DMA disabled</td>
+<td>USB DMA enabled</td>
+<td>Needed for high-speed streaming</td>
+</tr>
+</tbody>
+</table>
+<h1 id="the-file-you-build-and-flash">3. The File You Build and
+Flash</h1>
+<p>Build from:</p>
+<pre class="text"><code>C:\Users\karun\Downloads\FMCWCode\firmware</code></pre>
+<p>CubeIDE or <code>make</code> will produce:</p>
+<pre class="text"><code>C:\Users\karun\Downloads\FMCWCode\build\firmware-cubeide\fmcw_radar_f429.elf
+C:\Users\karun\Downloads\FMCWCode\build\firmware-cubeide\fmcw_radar_f429.bin
+C:\Users\karun\Downloads\FMCWCode\build\firmware-cubeide\fmcw_radar_f429.hex</code></pre>
+<p>For CubeIDE debug/flash, use the <code>.elf</code> file:</p>
+<pre class="text"><code>build\firmware-cubeide\fmcw_radar_f429.elf</code></pre>
+<p>The ELF contains both the program and debug symbols, so CubeIDE can
+step through source code if you create a debug configuration.</p>
+<h1 id="cubeide-build-steps">4. CubeIDE Build Steps</h1>
+<h2 id="option-a-build-after-importing-the-firmware-folder">Option A:
+Build After Importing the Firmware Folder</h2>
+<ol type="1">
+<li>Open STM32CubeIDE.</li>
+<li>Use <code>File -&gt; Import</code>.</li>
+<li>Choose an existing C/C++ project or Makefile project.</li>
+<li>Select:</li>
+</ol>
+<pre class="text"><code>C:\Users\karun\Downloads\FMCWCode\firmware</code></pre>
+<ol start="5" type="1">
+<li>Build the project.</li>
+</ol>
+<p>The <code>firmware\Makefile</code> runs CMake/Ninja behind the scenes
+and writes output to <code>build\firmware-cubeide</code>.</p>
+<h2 id="option-b-build-from-cubeide-terminal">Option B: Build From
+CubeIDE Terminal</h2>
+<p>In a CubeIDE terminal, run:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> C<span class="op">:</span>\Users\karun\Downloads\FMCWCode\firmware</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>make all</span></code></pre></div>
+<p>To flash with ST-LINK from the wrapper:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>make flash</span></code></pre></div>
+<p>The flash target uses STM32CubeProgrammer CLI and writes the ELF
+through SWD.</p>
+<h1 id="folder-map">5. Folder Map</h1>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>firmware\Makefile</code></td>
+<td>CubeIDE-friendly wrapper. Runs CMake configure/build and optional
+flash.</td>
+</tr>
+<tr>
+<td><code>firmware\CMakeLists.txt</code></td>
+<td>The real firmware build recipe: source files, HAL files, include
+paths, linker script.</td>
+</tr>
+<tr>
+<td><code>firmware\cmake\arm-none-eabi-gcc.cmake</code></td>
+<td>CMake toolchain file for ARM GCC.</td>
+</tr>
+<tr>
+<td><code>firmware\linker\STM32F429VETx_FLASH.ld</code></td>
+<td>Linker memory map. Places code in Flash and buffers in SRAM.</td>
+</tr>
+<tr>
+<td><code>firmware\startup\startup_stm32f429xx.s</code></td>
+<td>Reset vector and interrupt vector table startup code.</td>
+</tr>
+<tr>
+<td><code>firmware\Core\Inc</code></td>
+<td>Firmware header files.</td>
+</tr>
+<tr>
+<td><code>firmware\Core\Src</code></td>
+<td>Firmware C source files.</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td>Python PC-side capture/parser tools.</td>
+</tr>
+<tr>
+<td><code>tests</code></td>
+<td>Host protocol tests.</td>
+</tr>
+<tr>
+<td><code>docs</code></td>
+<td>Bring-up and board configuration notes.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="important-header-files">6. Important Header Files</h1>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>File</th>
+<th>What it contains</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Core\Inc\main.h</code></td>
+<td>Minimal global include for STM32 HAL.</td>
+</tr>
+<tr>
+<td><code>Core\Inc\fmcw_board_config.h</code></td>
+<td>Board-specific pins and build-time options. Start here when checking
+hardware mapping.</td>
+</tr>
+<tr>
+<td><code>Core\Inc\fmcw_protocol.h</code></td>
+<td>USB frame format: magic number, header size, payload size, sample
+rate, flags.</td>
+</tr>
+<tr>
+<td><code>Core\Inc\fmcw_capture.h</code></td>
+<td>Capture buffer sizes and capture-state function declarations.</td>
+</tr>
+<tr>
+<td><code>Core\Inc\fmcw_hardware.h</code></td>
+<td>Hardware initialization and TX standby function declarations.</td>
+</tr>
+<tr>
+<td><code>Core\Inc\fmcw_adf4158.h</code></td>
+<td>Optional ADF4158 SPI programming API.</td>
+</tr>
+<tr>
+<td><code>Core\Inc\usb_stream.h</code></td>
+<td>USB streaming API.</td>
+</tr>
+<tr>
+<td><code>Core\Inc\usbd_vendor_stream.h</code></td>
+<td>Vendor-specific USB class declarations.</td>
+</tr>
+<tr>
+<td><code>Core\Inc\stm32f4xx_hal_conf.h</code></td>
+<td>Enables the HAL modules used by this firmware.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="important-source-files">7. Important Source Files</h1>
+<h2 id="coresrcmain.c"><code>Core\Src\main.c</code></h2>
+<p>This is the application entry point.</p>
+<p>It does this in order:</p>
+<ol type="1">
+<li>Calls <code>HAL_Init()</code>.</li>
+<li>Configures clocks with <code>fmcw_clock_config()</code>.</li>
+<li>Starts the microsecond timestamp system.</li>
+<li>Initializes capture state.</li>
+<li>Configures GPIO pins.</li>
+<li>Resets the USB3317 PHY.</li>
+<li>Initializes DCMI, DMA, USB, TIM9, and interrupts.</li>
+<li>Optionally waits for USB enumeration.</li>
+<li>Optionally programs the ADF4158.</li>
+<li>Starts TIM9 alignment.</li>
+<li>Runs the forever loop.</li>
+</ol>
+<p>The forever loop calls:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fmcw_tx_service<span class="op">();</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>usb_stream_poll<span class="op">();</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>fmcw_capture_watchdog_poll<span class="op">();</span></span></code></pre></div>
+<p>So the main loop keeps TX enable updated, feeds USB frames to the
+host, and checks that ADF4158 MUXOUT pulses are still arriving.</p>
+<h2
+id="coresrcfmcw_hardware.c"><code>Core\Src\fmcw_hardware.c</code></h2>
+<p>This file owns direct hardware setup.</p>
+<p>Important functions:</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Function</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fmcw_clock_config()</code></td>
+<td>Sets HSE bypass, PLL, bus clocks, and MCO1 = HSE / 2 = 10 MHz.</td>
+</tr>
+<tr>
+<td><code>fmcw_gpio_init()</code></td>
+<td>Applies the CubeMX pin map, sets safe output levels, and samples
+TX_STDBY.</td>
+</tr>
+<tr>
+<td><code>fmcw_usb_phy_reset()</code></td>
+<td>Pulses USB3317 reset on PE13.</td>
+</tr>
+<tr>
+<td><code>fmcw_tx_service()</code></td>
+<td>Reads TX_STDBY on PE11. If high, sets MIXER_EN PD13 and PA_EN PE0
+high.</td>
+</tr>
+<tr>
+<td><code>fmcw_dcmi_init()</code></td>
+<td>Configures DCMI for 12-bit continuous capture.</td>
+</tr>
+<tr>
+<td><code>fmcw_dma2_stream1_init()</code></td>
+<td>Configures DMA2 Stream 1 Channel 1 double-buffer capture.</td>
+</tr>
+<tr>
+<td><code>fmcw_tim9_init()</code></td>
+<td>Configures TIM9 to watch ADF4158 MUXOUT on PE5.</td>
+</tr>
+<tr>
+<td><code>fmcw_nvic_init()</code></td>
+<td>Enables DMA, DCMI, USB, and TIM9 interrupts.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="coresrcfmcw_capture.c"><code>Core\Src\fmcw_capture.c</code></h2>
+<p>This file owns the capture buffer ring.</p>
+<p>The firmware has four frame buffers. DMA writes into two of them
+using hardware double-buffer mode. The other two are used as spare/USB
+buffers.</p>
+<p>When DMA finishes one slope:</p>
+<ol type="1">
+<li>The DMA interrupt calls <code>fmcw_capture_dma_tc_isr()</code>.</li>
+<li>The completed buffer gets a 64-byte frame header.</li>
+<li>The buffer is queued for USB.</li>
+<li>A free buffer is attached back to DMA.</li>
+<li>The slope sequence number increments.</li>
+</ol>
+<h2 id="coresrcstm32f4xx_it.c"><code>Core\Src\stm32f4xx_it.c</code></h2>
+<p>This file contains interrupt handlers.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Interrupt</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DMA2_Stream1_IRQHandler</code></td>
+<td>One slope buffer has completed, or DMA fault occurred.</td>
+</tr>
+<tr>
+<td><code>DCMI_IRQHandler</code></td>
+<td>DCMI overrun/sync errors become frame flags.</td>
+</tr>
+<tr>
+<td><code>TIM1_BRK_TIM9_IRQHandler</code></td>
+<td>First MUXOUT starts aligned capture; later MUXOUT edges update
+heartbeat count.</td>
+</tr>
+<tr>
+<td><code>OTG_HS_IRQHandler</code></td>
+<td>USB HAL interrupt handler.</td>
+</tr>
+<tr>
+<td><code>SysTick_Handler</code></td>
+<td>HAL tick.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="coresrcusb_stream.c"><code>Core\Src\usb_stream.c</code></h2>
+<p>This file moves completed frame buffers to USB.</p>
+<p>It checks whether USB is configured and whether EP1 IN is idle. If a
+frame is ready, it starts one bulk IN transfer. When USB reports
+completion, the buffer is returned to the free pool.</p>
+<h2
+id="coresrcusbd_vendor_stream.c"><code>Core\Src\usbd_vendor_stream.c</code></h2>
+<p>This is the vendor-specific USB class.</p>
+<p>It creates one interface and one bulk IN endpoint:</p>
+<pre class="text"><code>Endpoint: 0x81
+Direction: IN, device to host
+High-speed packet size: 512 bytes</code></pre>
+<h2 id="coresrcfmcw_frame.c"><code>Core\Src\fmcw_frame.c</code></h2>
+<p>This writes the 64-byte frame header before each ADC payload.</p>
+<p>The host uses the header to read:</p>
+<ul>
+<li>frame magic</li>
+<li>protocol version</li>
+<li>slope sequence</li>
+<li>triangle sequence</li>
+<li>slope direction id</li>
+<li>error flags</li>
+<li>sample rate</li>
+<li>timestamp</li>
+<li>MUXOUT count</li>
+</ul>
+<h2 id="coresrcfmcw_adf4158.c"><code>Core\Src\fmcw_adf4158.c</code></h2>
+<p>This is optional ADF4158 SPI programming support.</p>
+<p>Right now autoprogramming is disabled:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define FMCW_ENABLE_ADF4158_AUTOPROGRAM </span><span class="dv">0</span><span class="bu">u</span></span></code></pre></div>
+<p>That is intentional because the real ADF4158 register values for
+center frequency and ramp settings must be filled in first.</p>
+<h1 id="board-pin-summary">8. Board Pin Summary</h1>
+<h2 id="tx-control">TX Control</h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Pin</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TX_STDBY</td>
+<td>PE11 input</td>
+<td>Active high TX-enable request</td>
+</tr>
+<tr>
+<td>MIXER_EN</td>
+<td>PD13 output</td>
+<td>High when TX_STDBY is high</td>
+</tr>
+<tr>
+<td>PA_EN</td>
+<td>PE0 output</td>
+<td>High when TX_STDBY is high</td>
+</tr>
+</tbody>
+</table>
+<p>If TX_STDBY is normally high on your board, the firmware starts
+transmitting after GPIO initialization.</p>
+<h2 id="adf4158">ADF4158</h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Pin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PLL_CLK / SPI4_SCK</td>
+<td>PE2</td>
+</tr>
+<tr>
+<td>PLL_DATA / SPI4_MOSI</td>
+<td>PE6</td>
+</tr>
+<tr>
+<td>PLL_LE</td>
+<td>PA1</td>
+</tr>
+<tr>
+<td>PLL_CE</td>
+<td>PE1</td>
+</tr>
+<tr>
+<td>PLL_MUXOUT</td>
+<td>PE5 / TIM9_CH1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="dcmi-adc-bus">DCMI ADC Bus</h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Pin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D0</td>
+<td>PA9</td>
+</tr>
+<tr>
+<td>D1</td>
+<td>PC7</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>PC8</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>PC9</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>PC11</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>PD3</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>PB8</td>
+</tr>
+<tr>
+<td>D7</td>
+<td>PB9</td>
+</tr>
+<tr>
+<td>D8</td>
+<td>PC10</td>
+</tr>
+<tr>
+<td>D9</td>
+<td>PC12</td>
+</tr>
+<tr>
+<td>D10</td>
+<td>PD6</td>
+</tr>
+<tr>
+<td>D11</td>
+<td>PD2</td>
+</tr>
+<tr>
+<td>PIXCLK</td>
+<td>PA6</td>
+</tr>
+<tr>
+<td>HSYNC</td>
+<td>PA4, driven by firmware</td>
+</tr>
+<tr>
+<td>HSYNC feedback</td>
+<td>PA7, routed from PA4 on the PCB</td>
+</tr>
+<tr>
+<td>VSYNC</td>
+<td>PB7, expected tied low</td>
+</tr>
+</tbody>
+</table>
+<h1 id="how-capture-starts">9. How Capture Starts</h1>
+<p>At boot, DCMI is configured but not capturing yet.</p>
+<p>TIM9 watches MUXOUT from the ADF4158 on PE5. On the first MUXOUT
+edge, TIM9 waits a small delay for the LTC1420 pipeline offset. Then the
+TIM9 interrupt drives PA4 HSYNC high, checks the routed PA7 feedback
+signal, and sets the DCMI capture bit.</p>
+<p>After that, HSYNC stays high. The firmware does not toggle HSYNC
+every slope.</p>
+<p>One DMA buffer equals one slope:</p>
+<pre class="text"><code>10,000 samples per slope
+2 samples packed per 32-bit DCMI word
+5,000 DMA words per slope
+20,000 payload bytes per slope
+64 header bytes per USB frame
+20,064 total bytes per frame</code></pre>
+<h1 id="what-to-check-on-the-board">10. What To Check On The Board</h1>
+<p>Start with these checks:</p>
+<ol type="1">
+<li>PA8 should output 10 MHz MCO1.</li>
+<li>USB3317 should have its 26 MHz reference and ULPI 60 MHz clock.</li>
+<li>USB should enumerate as a vendor-specific device.</li>
+<li>PE11 TX_STDBY high should make PD13 MIXER_EN and PE0 PA_EN go
+high.</li>
+<li>PE5 should receive ADF4158 MUXOUT pulses every slope.</li>
+<li>PA4 HSYNC should go high after the first MUXOUT alignment
+event.</li>
+<li>PA7 should also read high because it is the routed-back HSYNC
+feedback signal.</li>
+<li>Host capture should receive frames with valid magic and increasing
+slope sequence.</li>
+</ol>
+<h1 id="common-beginner-mistakes">11. Common Beginner Mistakes</h1>
+<p>Do not edit generated files in the CubeMX folder and expect this
+firmware to change. The active firmware is under
+<code>C:\Users\karun\Downloads\FMCWCode\firmware</code>.</p>
+<p>Do not regenerate CubeMX code into this folder unless you are ready
+to manually re-merge the architecture.</p>
+<p>Do not flash the CubeMX-generated empty application from
+<code>C:\Users\karun\OneDrive\Desktop\FMCWRadarFirmware</code>. It
+configures pins, but it does not implement the radar pipeline.</p>
+<p>Do not flash the <code>.bin</code> from an arbitrary address unless
+you know the flash base address. In CubeIDE, use the
+<code>.elf</code>.</p>
+<h1 id="quick-reference">12. Quick Reference</h1>
+<p>Build:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> C<span class="op">:</span>\Users\karun\Downloads\FMCWCode\firmware</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>make all</span></code></pre></div>
+<p>Flash through ST-LINK:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>make flash</span></code></pre></div>
+<p>ELF to use in CubeIDE debug configuration:</p>
+<pre class="text"><code>C:\Users\karun\Downloads\FMCWCode\build\firmware-cubeide\fmcw_radar_f429.elf</code></pre>
+<p>Most important source files to read first:</p>
+<pre class="text"><code>firmware\Core\Src\main.c
+firmware\Core\Src\fmcw_hardware.c
+firmware\Core\Src\fmcw_capture.c
+firmware\Core\Src\stm32f4xx_it.c
+firmware\Core\Inc\fmcw_board_config.h</code></pre>
+</body>
+</html>
