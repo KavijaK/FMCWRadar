@@ -1,91 +1,217 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file    stm32f4xx_it.c
+  * @brief   Interrupt Service Routines.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
 #include "stm32f4xx_it.h"
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+/* USER CODE END Includes */
 
-#include "fmcw_board_config.h"
-#include "fmcw_capture.h"
-#include "stm32f4xx_hal.h"
-#include "usb_stream.h"
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN TD */
 
-extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
+/* USER CODE END TD */
 
-/* Keeps HAL_Delay() and the HAL timebase running. */
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+/* External variables --------------------------------------------------------*/
+extern DMA_HandleTypeDef hdma_dcmi;
+/* USER CODE BEGIN EV */
+
+/* USER CODE END EV */
+
+/******************************************************************************/
+/*           Cortex-M4 Processor Interruption and Exception Handlers          */
+/******************************************************************************/
+/**
+  * @brief This function handles Non maskable interrupt.
+  */
+void NMI_Handler(void)
+{
+  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
+
+  /* USER CODE END NonMaskableInt_IRQn 0 */
+  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
+   while (1)
+  {
+  }
+  /* USER CODE END NonMaskableInt_IRQn 1 */
+}
+
+/**
+  * @brief This function handles Hard fault interrupt.
+  */
+void HardFault_Handler(void)
+{
+  /* USER CODE BEGIN HardFault_IRQn 0 */
+
+  /* USER CODE END HardFault_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+    /* USER CODE END W1_HardFault_IRQn 0 */
+  }
+}
+
+/**
+  * @brief This function handles Memory management fault.
+  */
+void MemManage_Handler(void)
+{
+  /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+
+  /* USER CODE END MemoryManagement_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
+    /* USER CODE END W1_MemoryManagement_IRQn 0 */
+  }
+}
+
+/**
+  * @brief This function handles Pre-fetch fault, memory access fault.
+  */
+void BusFault_Handler(void)
+{
+  /* USER CODE BEGIN BusFault_IRQn 0 */
+
+  /* USER CODE END BusFault_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_BusFault_IRQn 0 */
+    /* USER CODE END W1_BusFault_IRQn 0 */
+  }
+}
+
+/**
+  * @brief This function handles Undefined instruction or illegal state.
+  */
+void UsageFault_Handler(void)
+{
+  /* USER CODE BEGIN UsageFault_IRQn 0 */
+
+  /* USER CODE END UsageFault_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
+    /* USER CODE END W1_UsageFault_IRQn 0 */
+  }
+}
+
+/**
+  * @brief This function handles System service call via SWI instruction.
+  */
+void SVC_Handler(void)
+{
+  /* USER CODE BEGIN SVCall_IRQn 0 */
+
+  /* USER CODE END SVCall_IRQn 0 */
+  /* USER CODE BEGIN SVCall_IRQn 1 */
+
+  /* USER CODE END SVCall_IRQn 1 */
+}
+
+/**
+  * @brief This function handles Debug monitor.
+  */
+void DebugMon_Handler(void)
+{
+  /* USER CODE BEGIN DebugMonitor_IRQn 0 */
+
+  /* USER CODE END DebugMonitor_IRQn 0 */
+  /* USER CODE BEGIN DebugMonitor_IRQn 1 */
+
+  /* USER CODE END DebugMonitor_IRQn 1 */
+}
+
+/**
+  * @brief This function handles Pendable request for system service.
+  */
+void PendSV_Handler(void)
+{
+  /* USER CODE BEGIN PendSV_IRQn 0 */
+
+  /* USER CODE END PendSV_IRQn 0 */
+  /* USER CODE BEGIN PendSV_IRQn 1 */
+
+  /* USER CODE END PendSV_IRQn 1 */
+}
+
+/**
+  * @brief This function handles System tick timer.
+  */
 void SysTick_Handler(void)
 {
+  /* USER CODE BEGIN SysTick_IRQn 0 */
+
+  /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
+  /* USER CODE BEGIN SysTick_IRQn 1 */
+
+  /* USER CODE END SysTick_IRQn 1 */
 }
 
-/* Handles DCMI DMA completion/error interrupts. A transfer complete event means
- * one full 1 ms slope payload is ready for a USB frame header.
- */
+/******************************************************************************/
+/* STM32F4xx Peripheral Interrupt Handlers                                    */
+/* Add here the Interrupt Handlers for the used peripherals.                  */
+/* For the available peripheral interrupt handler names,                      */
+/* please refer to the startup file (startup_stm32f4xx.s).                    */
+/******************************************************************************/
+
+/**
+  * @brief This function handles DMA2 stream1 global interrupt.
+  */
 void DMA2_Stream1_IRQHandler(void)
 {
-  uint32_t lisr = DMA2->LISR;
-  uint32_t clear = 0u;
+  /* USER CODE BEGIN DMA2_Stream1_IRQn 0 */
 
-  if ((lisr & DMA_LISR_TCIF1) != 0u) {
-    clear |= DMA_LIFCR_CTCIF1;
-    DMA2->LIFCR = clear;
-    fmcw_capture_dma_tc_isr();
-    return;
-  }
+  /* USER CODE END DMA2_Stream1_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_dcmi);
+  /* USER CODE BEGIN DMA2_Stream1_IRQn 1 */
 
-  if ((lisr & (DMA_LISR_TEIF1 | DMA_LISR_DMEIF1 | DMA_LISR_FEIF1)) != 0u) {
-    clear |= DMA_LIFCR_CTEIF1 | DMA_LIFCR_CDMEIF1 | DMA_LIFCR_CFEIF1;
-    DMA2->LIFCR = clear;
-    fmcw_capture_dma_error_isr(lisr);
-  }
+  /* USER CODE END DMA2_Stream1_IRQn 1 */
 }
 
-/* Converts DCMI overrun/sync faults into frame flags for host-side filtering. */
-void DCMI_IRQHandler(void)
-{
-  uint32_t mis = DCMI->MISR;
-  uint32_t clear = 0u;
+/* USER CODE BEGIN 1 */
 
-  if ((mis & DCMI_MIS_OVR_MIS) != 0u) {
-    clear |= DCMI_ICR_OVR_ISC;
-    fmcw_capture_note_dcmi_error(FMCW_FLAG_DCMI_OVR);
-  }
-  if ((mis & DCMI_MIS_ERR_MIS) != 0u) {
-    clear |= DCMI_ICR_ERR_ISC;
-    fmcw_capture_note_dcmi_error(FMCW_FLAG_ALIGN_LOST);
-  }
-  if (clear != 0u) {
-    DCMI->ICR = clear;
-  }
-}
-
-/* TIM9 has two jobs: CC2 performs the one-shot aligned DCMI start, and CC1
- * records later MUXOUT slope edges as a heartbeat.
- */
-void TIM1_BRK_TIM9_IRQHandler(void)
-{
-  uint32_t sr = TIM9->SR;
-
-  if ((sr & TIM_SR_CC2IF) != 0u) {
-    TIM9->SR = (uint16_t)~TIM_SR_CC2IF;
-    if ((DCMI->CR & DCMI_CR_CAPTURE) == 0u) {
-      FMCW_DCMI_HSYNC_GPIO_PORT->BSRR = FMCW_DCMI_HSYNC_PIN;
-      /* PA7 is the board-level feedback copy of PA4 HSYNC. If it did not go
-       * high, still start capture but mark the first frame as alignment-suspect.
-       */
-      if ((FMCW_DCMI_HSYNC_FEEDBACK_GPIO_PORT->IDR &
-           FMCW_DCMI_HSYNC_FEEDBACK_PIN) == 0u) {
-        fmcw_capture_note_dcmi_error(FMCW_FLAG_ALIGN_LOST);
-      }
-      DCMI->CR |= DCMI_CR_CAPTURE;
-      TIM9->DIER &= ~TIM_DIER_CC2IE;
-      fmcw_capture_start_aligned();
-    }
-  }
-
-  if ((sr & TIM_SR_CC1IF) != 0u) {
-    TIM9->SR = (uint16_t)~TIM_SR_CC1IF;
-    fmcw_capture_note_muxout();
-  }
-}
-
-/* Lets the HAL USB device stack retire endpoint transfers and control traffic. */
-void OTG_HS_IRQHandler(void)
-{
-  HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
-}
+/* USER CODE END 1 */

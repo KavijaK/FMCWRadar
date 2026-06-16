@@ -1,0 +1,3 @@
+../Core/Src/hal_timebase_dwt.c:9:13:update_time	64	static
+../Core/Src/hal_timebase_dwt.c:20:19:HAL_InitTick	16	static
+../Core/Src/hal_timebase_dwt.c:44:10:HAL_GetTick	8	static

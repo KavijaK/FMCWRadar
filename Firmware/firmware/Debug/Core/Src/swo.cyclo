@@ -1,0 +1,6 @@
+../Drivers/CMSIS/Include/core_cm4.h:2064:26:ITM_SendChar	4
+../Core/Src/swo.c:5:6:SWO_Init	1
+../Core/Src/swo.c:10:13:SWO_WriteChar	1
+../Core/Src/swo.c:15:6:SWO_WriteString	3
+../Core/Src/swo.c:28:6:SWO_WriteU32	3
+../Core/Src/swo.c:45:6:SWO_NewLine	1

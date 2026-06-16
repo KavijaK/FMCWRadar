@@ -1,0 +1,5 @@
+../Core/Src/adf4158.c:45:6:ADF4158_Init	48	static
+../Core/Src/adf4158.c:112:6:ADF4158_Program	16	static
+../Core/Src/adf4158.c:130:6:ADF4158_EnableRfOutput	8	static
+../Core/Src/adf4158.c:145:13:ADF4158_Write32	32	static
+../Core/Src/adf4158.c:169:13:ADF4158_Failure	16	static

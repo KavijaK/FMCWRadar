@@ -1,0 +1,5 @@
+../Core/Src/adf4158.c:45:6:ADF4158_Init	2
+../Core/Src/adf4158.c:112:6:ADF4158_Program	2
+../Core/Src/adf4158.c:130:6:ADF4158_EnableRfOutput	2
+../Core/Src/adf4158.c:145:13:ADF4158_Write32	3
+../Core/Src/adf4158.c:169:13:ADF4158_Failure	1

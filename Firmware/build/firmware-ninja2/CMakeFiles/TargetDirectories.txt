@@ -1,3 +1,0 @@
-C:/Users/karun/Downloads/FMCWCode/build/firmware-ninja2/CMakeFiles/fmcw_radar_f429.elf.dir
-C:/Users/karun/Downloads/FMCWCode/build/firmware-ninja2/CMakeFiles/edit_cache.dir
-C:/Users/karun/Downloads/FMCWCode/build/firmware-ninja2/CMakeFiles/rebuild_cache.dir
