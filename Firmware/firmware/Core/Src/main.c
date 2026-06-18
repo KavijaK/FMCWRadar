@@ -1,6 +1,7 @@
 #include "main.h"
 
 #include "adf4158.h"
+#include "pdet.h"
 
 #include <stdio.h>
 
@@ -38,6 +39,9 @@ int main(void)
   ADF4158_Init();
   ADF4158_Program();
   ADF4158_EnableRfOutput();
+  PDET_Init();
+  HAL_Delay(10U);
+  PDET_PrintOnce();
 
   while (1)
   {

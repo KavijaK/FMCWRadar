@@ -1,5 +1,6 @@
 "./Core/Src/adf4158.o"
 "./Core/Src/main.o"
+"./Core/Src/pdet.o"
 "./Core/Src/stm32f4xx_hal_msp.o"
 "./Core/Src/stm32f4xx_it.o"
 "./Core/Src/syscalls.o"
