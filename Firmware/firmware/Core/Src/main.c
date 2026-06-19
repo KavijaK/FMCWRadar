@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#define ENABLE_LTC1420_DEBUG_CAPTURE 1U
+#define ENABLE_LTC1420_DEBUG_CAPTURE 0U
 
 #if ENABLE_LTC1420_DEBUG_CAPTURE
 #include "ltc1420_debug.h"
@@ -45,10 +45,10 @@ int main(void)
 
   ADF4158_Init();
   ADF4158_Program();
-  // ADF4158_EnableRfOutput();
-  // PDET_Init();
-  // HAL_Delay(10U);
-  // PDET_PrintOnce();
+  ADF4158_EnableRfOutput();
+  PDET_Init();
+  HAL_Delay(10U);
+  PDET_PrintOnce();
 
 #if ENABLE_LTC1420_DEBUG_CAPTURE
   LTC1420_DebugCaptureOnce();

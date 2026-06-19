@@ -9,21 +9,26 @@ static SPI_HandleTypeDef hspi4;
 volatile uint32_t adf4158_failure_stage;
 volatile uint32_t adf4158_failure_status;
 
-/* Exact 1 ms slope with the 20 MHz TCXO reference:
- * ramp time = 2000 steps * 10 * 1 / 20 MHz = 1.000 ms.
- * bandwidth = 2000 steps * 100 kHz/step = 200 MHz.
+/* ADIsimPLL-verified 1 ms slope with the 20 MHz TCXO reference:
+ * start frequency = 5.700000000 GHz from INT = 285, FRAC = 0.
+ * step time = CLK1 * CLK2 / fPFD = 1 * 10 / 20 MHz = 0.5 us.
+ * step size = fPFD / 2^25 * DEV * 2^DEV_OFFSET
+ *           = 20 MHz / 2^25 * 21000 * 2^3 = 100.135803 kHz.
+ * one-way bandwidth = 2000 steps * 100.135803 kHz = 200.271606 MHz.
+ * stop frequency = 5.900271606 GHz; sweep midpoint = 5.800135803 GHz.
+ * triangle period = 2 * 2000 steps * 0.5 us = 2.000 ms.
  */
 static const uint32_t adf4158_registers[] = {
   0x00000007U, /* R7: ramp delay */
   0x00003E86U, /* R6: N_STEPS = 2000, ramp 1 */
   0x00803E86U, /* R6: N_STEPS = 2000, ramp 2 */
-  0x005A0005U, /* R5: DEV = 16384, DEV_OFFSET = 11, ramp 1 */
-  0x00DA0005U, /* R5: DEV = 16384, DEV_OFFSET = 11, ramp 2 */
-  0x00780084U, /* R4: CLK2 = 1, ramp divider mode, ramp MUXOUT */
+  0x001A9045U, /* R5: DEV = 21000, DEV_OFFSET = 3, ramp 1 */
+  0x009A9045U, /* R5: DEV = 21000, DEV_OFFSET = 3, ramp 2 */
+  0x00780504U, /* R4: CLK2 = 10, ramp divider mode, ramp MUXOUT */
   0x00000443U, /* R3: triangle ramp function */
-  0x0F408052U, /* R2: CLK1 = 10, R divider = 1 */
-  0x07A38001U, /* R1: FRAC LSB */
-  0xF88FBE98U, /* R0: INT/FRAC, ramp enabled, MUXOUT ramp complete */
+  0x0F40800AU, /* R2: CLK1 = 1, R divider = 1, CP = 5 mA, prescaler = 8/9 */
+  0x00000001U, /* R1: FRAC LSB = 0 */
+  0xF88E8000U, /* R0: INT = 285, FRAC MSB = 0, ramp enabled */
 };
 
 static const char * const adf4158_register_names[] = {
@@ -113,7 +118,7 @@ void ADF4158_Program(void)
 {
   const uint32_t count = sizeof(adf4158_registers) / sizeof(adf4158_registers[0]);
 
-  printf("ADF4158: programming 1 ms, 200 MHz triangle ramp\r\n");
+  printf("ADF4158: programming 1 ms, 200.272 MHz triangle ramp\r\n");
 
   for (uint32_t i = 0U; i < count; ++i)
   {
