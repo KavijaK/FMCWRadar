@@ -5,6 +5,13 @@
 
 #include <stdio.h>
 
+#define ENABLE_LTC1420_DEBUG_CAPTURE 1U
+
+#if ENABLE_LTC1420_DEBUG_CAPTURE
+#include "ltc1420_debug.h"
+
+#endif
+
 DCMI_HandleTypeDef hdcmi;
 DMA_HandleTypeDef hdma_dcmi;
 
@@ -38,10 +45,14 @@ int main(void)
 
   ADF4158_Init();
   ADF4158_Program();
-  ADF4158_EnableRfOutput();
-  PDET_Init();
-  HAL_Delay(10U);
-  PDET_PrintOnce();
+  // ADF4158_EnableRfOutput();
+  // PDET_Init();
+  // HAL_Delay(10U);
+  // PDET_PrintOnce();
+
+#if ENABLE_LTC1420_DEBUG_CAPTURE
+  LTC1420_DebugCaptureOnce();
+#endif
 
   while (1)
   {
@@ -120,7 +131,7 @@ static void MX_DCMI_Init(void)
   hdcmi.Instance = DCMI;
   hdcmi.Init.SynchroMode = DCMI_SYNCHRO_HARDWARE;
   hdcmi.Init.PCKPolarity = DCMI_PCKPOLARITY_FALLING;
-  hdcmi.Init.VSPolarity = DCMI_VSPOLARITY_LOW;
+  hdcmi.Init.VSPolarity = DCMI_VSPOLARITY_HIGH;
   hdcmi.Init.HSPolarity = DCMI_HSPOLARITY_LOW;
   hdcmi.Init.CaptureRate = DCMI_CR_ALL_FRAME;
   hdcmi.Init.ExtendedDataMode = DCMI_EXTEND_DATA_12B;
