@@ -2,10 +2,19 @@
 
 #include "adf4158.h"
 #include "pdet.h"
+#include "usb_hs_debug.h"
 
 #include <stdio.h>
 
 #define ENABLE_LTC1420_DEBUG_CAPTURE 0U
+#define ENABLE_ADF4158_BLADERF_TEST 0U
+#define ENABLE_USB_HS_DEBUG 1U
+
+#if ENABLE_USB_HS_DEBUG && defined(__GNUC__)
+#define FMCW_MAYBE_UNUSED __attribute__((unused))
+#else
+#define FMCW_MAYBE_UNUSED
+#endif
 
 #if ENABLE_LTC1420_DEBUG_CAPTURE
 #include "ltc1420_debug.h"
@@ -24,10 +33,10 @@ volatile uint32_t clock_failure_rcc_pllcfgr;
 
 void SystemClock_Config(void);
 static void Clock_Failure(uint32_t stage, HAL_StatusTypeDef status);
-static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
-static void MX_DCMI_Init(void);
-static void MX_USB_OTG_HS_PCD_Init(void);
+static void MX_GPIO_Init(void) FMCW_MAYBE_UNUSED;
+static void MX_DMA_Init(void) FMCW_MAYBE_UNUSED;
+static void MX_DCMI_Init(void) FMCW_MAYBE_UNUSED;
+static void MX_USB_OTG_HS_PCD_Init(void) FMCW_MAYBE_UNUSED;
 
 int __io_putchar(int ch)
 {
@@ -43,8 +52,15 @@ int main(void)
 
   printf("CLOCK: initialized, SYSCLK=%lu Hz\r\n", HAL_RCC_GetSysClockFreq());
 
+#if ENABLE_USB_HS_DEBUG
+  USBHSDebug_Init(&hpcd_USB_OTG_HS);
+#else
   ADF4158_Init();
+#if ENABLE_ADF4158_BLADERF_TEST
+  ADF4158_ProgramBladeRfTest();
+#else
   ADF4158_Program();
+#endif
   ADF4158_EnableRfOutput();
   PDET_Init();
   HAL_Delay(10U);
@@ -53,11 +69,16 @@ int main(void)
 #if ENABLE_LTC1420_DEBUG_CAPTURE
   LTC1420_DebugCaptureOnce();
 #endif
+#endif
 
   while (1)
   {
+#if ENABLE_USB_HS_DEBUG
+    USBHSDebug_Task();
+#else
     printf("Heartbeat: %lu ms\r\n", HAL_GetTick());
     HAL_Delay(1000);
+#endif
   }
 
 }

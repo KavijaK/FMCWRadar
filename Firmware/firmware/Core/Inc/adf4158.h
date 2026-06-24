@@ -3,6 +3,7 @@
 
 void ADF4158_Init(void);
 void ADF4158_Program(void);
+void ADF4158_ProgramBladeRfTest(void);
 void ADF4158_EnableRfOutput(void);
 
 #endif /* ADF4158_H */

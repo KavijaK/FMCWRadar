@@ -1,0 +1,3 @@
+../Core/Src/rf_control.c:9:6:RFEnable	8	static
+../Core/Src/rf_control.c:25:6:RFDisable	8	static
+../Core/Src/rf_control.c:32:13:RFConfigurePins	40	static
