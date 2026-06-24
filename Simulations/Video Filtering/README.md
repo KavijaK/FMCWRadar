@@ -113,7 +113,6 @@ The simulation includes:
 - LTSPICE Documentation
 - INA849 Instrumentation Amplifier Datasheet
 - THS4561 Op-Amp Datasheet
-- Chebyshev Filter Design Theory
 
 ---
 
