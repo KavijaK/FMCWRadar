@@ -2,13 +2,13 @@
 
 ## Overview
 
-This directory contains the LTSPICE simulation for the video filtering stage of the FMCW Radar system. The filter is designed to condition the received signal after the mixer stage, compensating for the distance-dependent signal attenuation and extracting the video (baseband) signal.
+This directory contains the LTSPICE simulation for the video filtering stage of the FMCW Radar system. The filter is designed to condition the received signal after the mixer stage, compensating fo[...]
 
 ## Filter Design
 
 ### Architecture
 
-The video filter implements a **second-order high-pass Chebyshev filter (0.1 dB ripple)** followed by a **passive low-pass filter**, utilizing a **multiple feedback topology** for improved noise performance.
+The video filter implements a **second-order high-pass Chebyshev filter (0.1 dB ripple)** followed by a **passive low-pass filter**, utilizing a **multiple feedback topology** for improved noise p[...]
 
 ### Key Characteristics
 
@@ -91,7 +91,8 @@ The simulation includes:
 - **Input Impedance**: High (determined by instrumentation amplifier)
 - **Output Impedance**: Low (suitable for ADC input or subsequent processing)
 - **Noise Performance**: Improved by differential topology in multiple feedback configuration
-- **Bandwidth**: DC-coupled high-pass with cutoff < 1 kHz; low-pass rolloff > 1 MHz
+- **Bandwidth (operating region)**: DC-coupled high-pass behaviour with cutoff < 1 kHz and effective operation up to ~1 MHz; note that the response is not flat — "bandwidth" here denotes the intended frequency range over which the filter provides the designed frequency-dependent gain and acceptable group delay rather than a flat passband
+- **Group Delay**: Approximately constant across the intended operating region to preserve signal integrity
 - **Gain**: Frequency-dependent, peaking near 200 kHz
 
 ## Design Notes
@@ -104,9 +105,8 @@ The simulation includes:
 ## Future Improvements
 
 - PCB layout optimization for EMI/EMC performance
-- Prototype testing and measurement validation
+- Prototype testing and measurement validation; testing the PCB and adjust the gain using resistor R19 on the INA849
 - Frequency response tuning based on actual system measurements
-- Addition of programmable gain stage for adaptive filtering
 
 ## References
 
