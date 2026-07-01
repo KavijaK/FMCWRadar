@@ -23,7 +23,8 @@ except ImportError:
 VID = 0x1209
 PID = 0x4158
 EP_IN = 0x81
-READ_SIZE = 16384
+READ_SIZE = 128 * 1024
+VERIFY_PATTERN = bytes(range(256)) * ((READ_SIZE // 256) + 2)
 
 
 def get_backend():
@@ -67,14 +68,15 @@ def main() -> None:
     print("Reading endpoint 0x81. Press Ctrl+C to stop.")
 
     while True:
-        data = dev.read(EP_IN, READ_SIZE, timeout=1000)
+        data = bytes(dev.read(EP_IN, READ_SIZE, timeout=1000))
 
-        for value in data:
-            if value != expected:
-                errors += 1
-                expected = (int(value) + 1) & 0xFF
-            else:
-                expected = (expected + 1) & 0xFF
+        expected_data = VERIFY_PATTERN[expected:expected + len(data)]
+        if data != expected_data:
+            errors += sum(1 for actual, wanted in zip(data, expected_data) if actual != wanted)
+            if data:
+                expected = (data[-1] + 1) & 0xFF
+        else:
+            expected = (expected + len(data)) & 0xFF
 
         total_bytes += len(data)
         now = time.monotonic()

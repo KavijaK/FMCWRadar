@@ -8,19 +8,8 @@ static SPI_HandleTypeDef hspi4;
 
 volatile uint32_t adf4158_failure_stage;
 volatile uint32_t adf4158_failure_status;
-/* Temporary bladeRF test profile knobs. Change only these two values for this test preset.
- * Bandwidth range: 1 MHz to 200 MHz. One-way chirp time range: 1 ms to 8 s.
- */
-#define ADF4158_TEST_BANDWIDTH_HZ       2000000UL
-#define ADF4158_TEST_CHIRP_TIME_US      8000000UL
 
-#define ADF4158_TEST_CENTER_HZ          5800000000ULL
-#define ADF4158_TEST_PFD_HZ             20000000UL
-#define ADF4158_TEST_MODULUS            33554432ULL
-#define ADF4158_TEST_STEPS              2000UL
-#define ADF4158_TEST_DEV_MAX            32767UL
-#define ADF4158_TEST_DEV_OFFSET_MAX     9UL
-#define ADF4158_TEST_CLK_MAX            4095UL
+#define ADF4158_REGISTER_COUNT          10U
 
 /* ADIsimPLL-verified 1 ms slope with the 20 MHz TCXO reference:
  * start frequency = 5.700000000 GHz from INT = 285, FRAC = 0.
@@ -44,14 +33,29 @@ static const uint32_t adf4158_registers[] = {
   0xF88E8000U, /* R0: INT = 285, FRAC MSB = 0, ramp enabled */
 };
 
-/* Temporary bladeRF transmitter test profile is generated from
- * ADF4158_TEST_BANDWIDTH_HZ and ADF4158_TEST_CHIRP_TIME_US.
- * Equations:
- *   fDEV = fPFD / 2^25 * DEV * 2^DEV_OFFSET
- *   bandwidth = fDEV * N_STEPS
- *   step_time = CLK1 * CLK2 / fPFD
- *   chirp_time = step_time * N_STEPS
- * Center frequency is fixed at 5.8 GHz for this test profile.
+/* Temporary bladeRF transmitter test profile:
+ * center frequency = 5.800000000 GHz.
+ * start frequency = 5.799000013 GHz from INT = 289, FRAC = 31876732.
+ * step time = CLK1 * CLK2 / fPFD = 800 * 1000 / 20 MHz = 40.000 ms.
+ * one-way chirp time = 200 steps * 40.000 ms = 8.000000 s.
+ * step size = 20 MHz / 2^25 * 16777 * 2^0 = 9.999871 kHz.
+ * one-way bandwidth = 200 steps * 9.999871 kHz = 1.999974 MHz.
+ * stop frequency = 5.800999987 GHz.
+ */
+static const uint32_t adf4158_bladerf_test_registers[] = {
+  0x00000007U, /* R7: ramp delay */
+  0x00000646U, /* R6: N_STEPS = 200, ramp 1 */
+  0x00800646U, /* R6: N_STEPS = 200, ramp 2 */
+  0x00020C4DU, /* R5: DEV = 16777, DEV_OFFSET = 0, ramp 1 */
+  0x00820C4DU, /* R5: DEV = 16777, DEV_OFFSET = 0, ramp 2 */
+  0x0079F404U, /* R4: CLK2 = 1000, ramp divider mode, ramp MUXOUT */
+  0x00000443U, /* R3: triangle ramp function */
+  0x0F409902U, /* R2: CLK1 = 800, R divider = 1, CP = 5 mA, prescaler = 8/9 */
+  0x033E0001U, /* R1: FRAC LSB = 1660 */
+  0xF890F998U, /* R0: INT = 289, FRAC MSB = 3891, ramp enabled */
+};
+
+/* Register write order is R7 down to R0.
  */
 static const char * const adf4158_register_names[] = {
   "R7 delay",
@@ -66,22 +70,15 @@ static const char * const adf4158_register_names[] = {
   "R0 ramp enable",
 };
 
+_Static_assert((sizeof(adf4158_registers) / sizeof(adf4158_registers[0])) == ADF4158_REGISTER_COUNT,
+               "ADF4158 original preset must contain 10 register writes");
+_Static_assert((sizeof(adf4158_bladerf_test_registers) / sizeof(adf4158_bladerf_test_registers[0])) == ADF4158_REGISTER_COUNT,
+               "ADF4158 test preset must contain 10 register writes");
+_Static_assert((sizeof(adf4158_register_names) / sizeof(adf4158_register_names[0])) == ADF4158_REGISTER_COUNT,
+               "ADF4158 register names must match register write count");
+
 static void ADF4158_Failure(uint32_t stage, HAL_StatusTypeDef status);
 static void ADF4158_Write32(uint32_t word);
-static void ADF4158_BuildBladeRfTestRegisters(uint32_t registers[10],
-                                              uint32_t *dev,
-                                              uint32_t *dev_offset,
-                                              uint32_t *clk1,
-                                              uint32_t *clk2,
-                                              uint64_t *actual_bandwidth_hz,
-                                              uint64_t *start_hz,
-                                              uint64_t *stop_hz,
-                                              uint32_t *actual_chirp_time_us);
-static void ADF4158_SelectTestClockDividers(uint32_t target_product,
-                                            uint32_t *clk1,
-                                            uint32_t *clk2);
-static uint32_t ADF4158_RoundDivU64(uint64_t numerator, uint64_t denominator);
-static void ADF4158_PrintMHz(const char *label, uint64_t hz);
 
 void ADF4158_Init(void)
 {
@@ -100,7 +97,7 @@ void ADF4158_Init(void)
   HAL_GPIO_WritePin(PLL_LE_GPIO_Port, PLL_LE_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(PLL_CE_GPIO_Port, PLL_CE_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(PA_EN_GPIO_Port, PA_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(MIXER_EN_GPIO_Port, MIXER_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(MIXER_EN_GPIO_Port, MIXER_EN_Pin, GPIO_PIN_SET);
 
   gpio.Pin = PLL_CLK_Pin | PLL_DATA_Pin;
   gpio.Mode = GPIO_MODE_AF_PP;
@@ -152,11 +149,9 @@ void ADF4158_Init(void)
 
 void ADF4158_Program(void)
 {
-  const uint32_t count = sizeof(adf4158_registers) / sizeof(adf4158_registers[0]);
-
   printf("ADF4158: programming 1 ms, 200.272 MHz triangle ramp\r\n");
 
-  for (uint32_t i = 0U; i < count; ++i)
+  for (uint32_t i = 0U; i < ADF4158_REGISTER_COUNT; ++i)
   {
     printf("ADF4158: write %s = 0x%08lX\r\n",
            adf4158_register_names[i],
@@ -170,47 +165,16 @@ void ADF4158_Program(void)
 
 void ADF4158_ProgramBladeRfTest(void)
 {
-  uint32_t registers[10];
-  uint32_t dev;
-  uint32_t dev_offset;
-  uint32_t clk1;
-  uint32_t clk2;
-  uint64_t actual_bandwidth_hz;
-  uint64_t start_hz;
-  uint64_t stop_hz;
-  uint32_t actual_chirp_time_us;
-  const uint32_t count = sizeof(registers) / sizeof(registers[0]);
+  printf("ADF4158 TEST: programming 8 s, 1.999974 MHz triangle ramp\r\n");
+  printf("ADF4158 TEST: start=5799.000013 MHz stop=5800.999987 MHz center=5800.000000 MHz\r\n");
+  printf("ADF4158 TEST: DEV=16777 DEV_OFFSET=0 CLK1=800 CLK2=1000 N_STEPS=200\r\n");
 
-  ADF4158_BuildBladeRfTestRegisters(registers,
-                                    &dev,
-                                    &dev_offset,
-                                    &clk1,
-                                    &clk2,
-                                    &actual_bandwidth_hz,
-                                    &start_hz,
-                                    &stop_hz,
-                                    &actual_chirp_time_us);
-
-  printf("ADF4158 TEST: programming bladeRF triangle ramp\r\n");
-  printf("ADF4158 TEST: target BW=%lu Hz, chirp=%lu us\r\n",
-         (unsigned long)ADF4158_TEST_BANDWIDTH_HZ,
-         (unsigned long)ADF4158_TEST_CHIRP_TIME_US);
-  printf("ADF4158 TEST: DEV=%lu DEV_OFFSET=%lu CLK1=%lu CLK2=%lu\r\n",
-         (unsigned long)dev,
-         (unsigned long)dev_offset,
-         (unsigned long)clk1,
-         (unsigned long)clk2);
-  ADF4158_PrintMHz("ADF4158 TEST: start=", start_hz);
-  ADF4158_PrintMHz(" stop=", stop_hz);
-  ADF4158_PrintMHz(" BW=", actual_bandwidth_hz);
-  printf(" chirp=%lu us\r\n", (unsigned long)actual_chirp_time_us);
-
-  for (uint32_t i = 0U; i < count; ++i)
+  for (uint32_t i = 0U; i < ADF4158_REGISTER_COUNT; ++i)
   {
     printf("ADF4158 TEST: write %s = 0x%08lX\r\n",
            adf4158_register_names[i],
-           (unsigned long)registers[i]);
-    ADF4158_Write32(registers[i]);
+           (unsigned long)adf4158_bladerf_test_registers[i]);
+    ADF4158_Write32(adf4158_bladerf_test_registers[i]);
   }
 
   HAL_Delay(1U);
@@ -221,180 +185,15 @@ void ADF4158_EnableRfOutput(void)
 {
   if (HAL_GPIO_ReadPin(TX_STDBY_GPIO_Port, TX_STDBY_Pin) == GPIO_PIN_RESET)
   {
-    HAL_GPIO_WritePin(MIXER_EN_GPIO_Port, MIXER_EN_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(MIXER_EN_GPIO_Port, MIXER_EN_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(PA_EN_GPIO_Port, PA_EN_Pin, GPIO_PIN_RESET);
     printf("RF: TX_STDBY is low, output remains disabled\r\n");
     return;
   }
 
-  HAL_GPIO_WritePin(MIXER_EN_GPIO_Port, MIXER_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(MIXER_EN_GPIO_Port, MIXER_EN_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(PA_EN_GPIO_Port, PA_EN_Pin, GPIO_PIN_SET);
-  printf("RF: MIXER_EN=1 PA_EN=1\r\n");
-}
-
-static void ADF4158_BuildBladeRfTestRegisters(uint32_t registers[10],
-                                              uint32_t *dev,
-                                              uint32_t *dev_offset,
-                                              uint32_t *clk1,
-                                              uint32_t *clk2,
-                                              uint64_t *actual_bandwidth_hz,
-                                              uint64_t *start_hz,
-                                              uint64_t *stop_hz,
-                                              uint32_t *actual_chirp_time_us)
-{
-  uint32_t selected_dev = 0U;
-  uint32_t selected_offset = 0U;
-  const uint64_t bandwidth = ADF4158_TEST_BANDWIDTH_HZ;
-  const uint64_t chirp_us = ADF4158_TEST_CHIRP_TIME_US;
-  const uint64_t target_step_denominator = (uint64_t)ADF4158_TEST_STEPS * ADF4158_TEST_PFD_HZ;
-  uint32_t clk_product;
-  uint64_t actual_bw;
-  uint64_t start;
-  uint64_t remainder;
-  uint32_t int_word;
-  uint32_t frac;
-  uint32_t frac_msb;
-  uint32_t frac_lsb;
-
-  if ((ADF4158_TEST_BANDWIDTH_HZ < 1000000UL) ||
-      (ADF4158_TEST_BANDWIDTH_HZ > 200000000UL) ||
-      (ADF4158_TEST_CHIRP_TIME_US < 1000UL) ||
-      (ADF4158_TEST_CHIRP_TIME_US > 8000000UL))
-  {
-    printf("ADF4158 TEST: requested bandwidth/chirp is outside the supported test range\r\n");
-    ADF4158_Failure(3U, HAL_ERROR);
-  }
-
-  for (uint32_t offset = 0U; offset <= ADF4158_TEST_DEV_OFFSET_MAX; ++offset)
-  {
-    const uint64_t scale = 1ULL << offset;
-    const uint32_t candidate = ADF4158_RoundDivU64(bandwidth * ADF4158_TEST_MODULUS,
-                                                   target_step_denominator * scale);
-    if ((candidate > 0U) && (candidate <= ADF4158_TEST_DEV_MAX))
-    {
-      selected_dev = candidate;
-      selected_offset = offset;
-      break;
-    }
-  }
-
-  if (selected_dev == 0U)
-  {
-    printf("ADF4158 TEST: could not derive a valid DEV/DEV_OFFSET\r\n");
-    ADF4158_Failure(4U, HAL_ERROR);
-  }
-
-  clk_product = ADF4158_RoundDivU64(chirp_us * ADF4158_TEST_PFD_HZ,
-                                    1000000ULL * ADF4158_TEST_STEPS);
-  if (clk_product == 0U)
-  {
-    clk_product = 1U;
-  }
-  ADF4158_SelectTestClockDividers(clk_product, clk1, clk2);
-
-  actual_bw = ADF4158_RoundDivU64((uint64_t)ADF4158_TEST_PFD_HZ *
-                                  selected_dev *
-                                  (1ULL << selected_offset) *
-                                  ADF4158_TEST_STEPS,
-                                  ADF4158_TEST_MODULUS);
-  start = ADF4158_TEST_CENTER_HZ - (actual_bw / 2ULL);
-  int_word = (uint32_t)(start / ADF4158_TEST_PFD_HZ);
-  remainder = start % ADF4158_TEST_PFD_HZ;
-  frac = ADF4158_RoundDivU64(remainder * ADF4158_TEST_MODULUS,
-                             ADF4158_TEST_PFD_HZ);
-  if (frac >= ADF4158_TEST_MODULUS)
-  {
-    ++int_word;
-    frac = 0U;
-  }
-
-  frac_msb = frac >> 13;
-  frac_lsb = frac & 0x1FFFU;
-
-  registers[0] = 0x00000007U;
-  registers[1] = (ADF4158_TEST_STEPS << 3) | 0x6U;
-  registers[2] = registers[1] | (1UL << 23);
-  registers[3] = (selected_dev << 3) | (selected_offset << 19) | 0x5U;
-  registers[4] = registers[3] | (1UL << 23);
-  registers[5] = (0x00780504U & ~(0xFFFUL << 7)) | (*clk2 << 7);
-  registers[6] = 0x00000443U;
-  registers[7] = (0x0F40800AU & ~(0xFFFUL << 3)) | (*clk1 << 3);
-  registers[8] = (frac_lsb << 15) | 0x1U;
-  registers[9] = 0xF8000000U | (int_word << 15) | (frac_msb << 3);
-
-  *dev = selected_dev;
-  *dev_offset = selected_offset;
-  *actual_bandwidth_hz = actual_bw;
-  *start_hz = start;
-  *stop_hz = start + actual_bw;
-  *actual_chirp_time_us = ADF4158_RoundDivU64((uint64_t)(*clk1) *
-                                               (*clk2) *
-                                               ADF4158_TEST_STEPS *
-                                               1000000ULL,
-                                               ADF4158_TEST_PFD_HZ);
-}
-
-static void ADF4158_SelectTestClockDividers(uint32_t target_product,
-                                            uint32_t *clk1,
-                                            uint32_t *clk2)
-{
-  uint32_t best_clk1 = 1U;
-  uint32_t best_clk2 = 1U;
-  uint32_t best_error = 0xFFFFFFFFU;
-
-  for (uint32_t candidate_clk1 = 1U; candidate_clk1 <= ADF4158_TEST_CLK_MAX; ++candidate_clk1)
-  {
-    uint32_t candidate_clk2 = ADF4158_RoundDivU64(target_product, candidate_clk1);
-    uint32_t product;
-    uint32_t error;
-
-    if (candidate_clk2 == 0U)
-    {
-      candidate_clk2 = 1U;
-    }
-    if (candidate_clk2 > ADF4158_TEST_CLK_MAX)
-    {
-      continue;
-    }
-
-    product = candidate_clk1 * candidate_clk2;
-    error = (product > target_product) ? (product - target_product) : (target_product - product);
-    if (error < best_error)
-    {
-      best_error = error;
-      best_clk1 = candidate_clk1;
-      best_clk2 = candidate_clk2;
-      if (error == 0U)
-      {
-        break;
-      }
-    }
-  }
-
-  if (best_error == 0xFFFFFFFFU)
-  {
-    printf("ADF4158 TEST: could not derive valid CLK1/CLK2\r\n");
-    ADF4158_Failure(5U, HAL_ERROR);
-  }
-
-  *clk1 = best_clk1;
-  *clk2 = best_clk2;
-}
-
-static uint32_t ADF4158_RoundDivU64(uint64_t numerator, uint64_t denominator)
-{
-  return (uint32_t)((numerator + (denominator / 2ULL)) / denominator);
-}
-
-static void ADF4158_PrintMHz(const char *label, uint64_t hz)
-{
-  const uint32_t mhz = (uint32_t)(hz / 1000000ULL);
-  const uint32_t frac_hz = (uint32_t)(hz % 1000000ULL);
-
-  printf("%s%lu.%06lu MHz",
-         label,
-         (unsigned long)mhz,
-         (unsigned long)frac_hz);
+  printf("RF: MIXER_EN=0(active) PA_EN=1\r\n");
 }
 
 static void ADF4158_Write32(uint32_t word)

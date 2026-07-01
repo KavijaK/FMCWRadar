@@ -8,10 +8,16 @@
 #define USB_HS_DEBUG_EP0_MPS            64U
 #define USB_HS_DEBUG_HS_BULK_MPS        512U
 #define USB_HS_DEBUG_FS_BULK_MPS        64U
-#define USB_HS_DEBUG_TX_SIZE            16384U
+#define USB_HS_DEBUG_TX_SIZE            (4U * 1024U)
+#define USB_HS_DEBUG_RX_FIFO_WORDS      0x80U
+#define USB_HS_DEBUG_EP0_TX_FIFO_WORDS  0x40U
+#define USB_HS_DEBUG_EP1_TX_FIFO_WORDS  0x300U
 #define USB_HS_DEBUG_MS_VENDOR_CODE     0x21U
-#define USB_HS_DEBUG_BUILD_TAG          "usb-hs-ep0-status-fix-2026-06-24"
+#define USB_HS_DEBUG_BUILD_TAG          "usb-hs-stream-dma-pad-2026-07-01"
 #define USB_HS_DEBUG_RUN_PHY_PROBES     0U
+
+_Static_assert((USB_HS_DEBUG_TX_SIZE % 256U) == 0U,
+               "USB debug pattern repeats cleanly only for 256-byte multiples");
 
 #define USB_HS_GPVNDCTL                 (*(__IO uint32_t *)((uint32_t)USB_OTG_HS + 0x34U))
 #define USB_HS_GPVNDCTL_REGDATA(data)   ((uint32_t)(data) & 0xFFUL)
@@ -68,6 +74,8 @@
 #define USB_REQ_GET_INTERFACE           0x0AU
 #define USB_REQ_SET_INTERFACE           0x0BU
 
+#define USB_HS_DEBUG_REQ_START_STREAM   0x30U
+
 #define USB_DESC_TYPE_DEVICE            0x01U
 #define USB_DESC_TYPE_CONFIGURATION     0x02U
 #define USB_DESC_TYPE_STRING            0x03U
@@ -100,8 +108,14 @@ static volatile uint8_t usb_hs_debug_tx_busy;
 static volatile uint8_t usb_hs_debug_stream_enabled;
 static volatile uint32_t usb_hs_debug_completed_transfers;
 static volatile uint64_t usb_hs_debug_completed_bytes;
-static uint8_t usb_hs_debug_tx_buffer[USB_HS_DEBUG_TX_SIZE];
-static uint8_t usb_hs_debug_ep0_buffer[64];
+static volatile uint8_t usb_hs_debug_stream_start_requested;
+static uint8_t usb_hs_debug_first_stream_tx_reported;
+static uint32_t usb_hs_debug_current_tx_len;
+static const uint8_t *usb_hs_debug_current_tx_data;
+static USBHSDebug_NextTxBufferCallback usb_hs_debug_next_tx;
+static USBHSDebug_TxDoneCallback usb_hs_debug_tx_done;
+static uint8_t usb_hs_debug_tx_buffer[USB_HS_DEBUG_TX_SIZE] __attribute__((aligned(4)));
+static uint8_t usb_hs_debug_ep0_buffer[64] __attribute__((aligned(4)));
 static uint32_t usb_hs_debug_sequence;
 static uint32_t usb_hs_debug_last_report_tick;
 static uint64_t usb_hs_debug_last_report_bytes;
@@ -215,7 +229,7 @@ static void USBHSDebug_BuildConfigDescriptor(uint8_t descriptor_type,
                                              uint16_t bulk_mps);
 static void USBHSDebug_OpenBulkIn(PCD_HandleTypeDef *hpcd);
 static void USBHSDebug_CloseBulkIn(PCD_HandleTypeDef *hpcd);
-static void USBHSDebug_FillTxBuffer(void);
+static void USBHSDebug_PrepareTxBuffer(void);
 static void USBHSDebug_QueueNextPacket(void);
 static const char *USBHSDebug_SpeedName(const PCD_HandleTypeDef *hpcd);
 
@@ -228,15 +242,20 @@ void USBHSDebug_Init(PCD_HandleTypeDef *hpcd)
   usb_hs_debug_ep0_state = USB_HS_DEBUG_EP0_IDLE;
   usb_hs_debug_stream_enabled = 0U;
   usb_hs_debug_tx_busy = 0U;
+  usb_hs_debug_stream_start_requested = 0U;
+  usb_hs_debug_first_stream_tx_reported = 0U;
   usb_hs_debug_sequence = 0U;
   usb_hs_debug_completed_bytes = 0U;
   usb_hs_debug_completed_transfers = 0U;
+  usb_hs_debug_current_tx_data = NULL;
+  usb_hs_debug_current_tx_len = 0U;
   usb_hs_debug_last_report_tick = HAL_GetTick();
   usb_hs_debug_last_report_bytes = 0U;
   usb_hs_debug_setup_print_count = 0U;
   usb_hs_debug_ep0_print_count = 0U;
   usb_hs_debug_phy_clock_ready = 0U;
   usb_hs_debug_usb_started = 0U;
+  USBHSDebug_PrepareTxBuffer();
 
   printf("USB HS DEBUG BUILD: %s\r\n", USB_HS_DEBUG_BUILD_TAG);
   printf("USB HS DEBUG: resetting USB3317 PHY\r\n");
@@ -250,6 +269,28 @@ void USBHSDebug_Init(PCD_HandleTypeDef *hpcd)
   }
 
   USBHSDebug_StartDevice(hpcd);
+}
+
+void USBHSDebug_SetTxCallbacks(USBHSDebug_NextTxBufferCallback next,
+                               USBHSDebug_TxDoneCallback done)
+{
+  usb_hs_debug_next_tx = next;
+  usb_hs_debug_tx_done = done;
+}
+
+uint8_t USBHSDebug_IsConfigured(void)
+{
+  return (usb_hs_debug_configuration != 0U) ? 1U : 0U;
+}
+
+void USBHSDebug_ClearStreamStartRequest(void)
+{
+  usb_hs_debug_stream_start_requested = 0U;
+}
+
+uint8_t USBHSDebug_IsStreamStartRequested(void)
+{
+  return (usb_hs_debug_stream_start_requested != 0U) ? 1U : 0U;
 }
 
 void USBHSDebug_Task(void)
@@ -324,7 +365,7 @@ static void USBHSDebug_StartDevice(PCD_HandleTypeDef *hpcd)
   hpcd->Init.dev_endpoints = 6U;
   hpcd->Init.speed = PCD_SPEED_HIGH;
   hpcd->Init.ep0_mps = USB_HS_DEBUG_EP0_MPS;
-  hpcd->Init.dma_enable = DISABLE;
+  hpcd->Init.dma_enable = ENABLE;
   hpcd->Init.phy_itface = USB_OTG_ULPI_PHY;
   hpcd->Init.Sof_enable = DISABLE;
   hpcd->Init.low_power_enable = DISABLE;
@@ -360,9 +401,9 @@ static void USBHSDebug_StartDevice(PCD_HandleTypeDef *hpcd)
     USBHSDebug_RunWeakPullupProbe();
   }
 
-  (void)HAL_PCDEx_SetRxFiFo(hpcd, 0x80U);
-  (void)HAL_PCDEx_SetTxFiFo(hpcd, 0U, 0x40U);
-  (void)HAL_PCDEx_SetTxFiFo(hpcd, 1U, 0x200U);
+  (void)HAL_PCDEx_SetRxFiFo(hpcd, USB_HS_DEBUG_RX_FIFO_WORDS);
+  (void)HAL_PCDEx_SetTxFiFo(hpcd, 0U, USB_HS_DEBUG_EP0_TX_FIFO_WORDS);
+  (void)HAL_PCDEx_SetTxFiFo(hpcd, 1U, USB_HS_DEBUG_EP1_TX_FIFO_WORDS);
 
   HAL_NVIC_SetPriority(OTG_HS_IRQn, 5U, 0U);
   HAL_NVIC_EnableIRQ(OTG_HS_IRQn);
@@ -1056,6 +1097,9 @@ static void USBHSDebug_HandleStandardRequest(PCD_HandleTypeDef *hpcd,
         usb_hs_debug_tx_busy = 0U;
         usb_hs_debug_stream_enabled = 0U;
         usb_hs_debug_sequence = 0U;
+        usb_hs_debug_first_stream_tx_reported = 0U;
+        usb_hs_debug_current_tx_data = NULL;
+        usb_hs_debug_current_tx_len = 0U;
 
         if (usb_hs_debug_configuration != 0U)
         {
@@ -1115,6 +1159,13 @@ static void USBHSDebug_HandleVendorRequest(PCD_HandleTypeDef *hpcd,
                                sizeof(usb_hs_debug_ms_compat_id_desc),
                                req->wLength);
   }
+  else if (((req->bmRequestType & 0x80U) == 0U) &&
+           (req->bRequest == USB_HS_DEBUG_REQ_START_STREAM))
+  {
+    usb_hs_debug_stream_start_requested = 1U;
+    printf("USB HS DEBUG: host requested radar stream start\r\n");
+    USBHSDebug_SendStatus(hpcd);
+  }
   else
   {
     USBHSDebug_StallControl(hpcd);
@@ -1132,9 +1183,21 @@ static void USBHSDebug_SendControlData(PCD_HandleTypeDef *hpcd,
   {
     send_len = requested_len;
   }
+  if (send_len > sizeof(usb_hs_debug_ep0_buffer))
+  {
+    send_len = sizeof(usb_hs_debug_ep0_buffer);
+  }
+
+  if (data != usb_hs_debug_ep0_buffer)
+  {
+    for (uint16_t i = 0U; i < send_len; ++i)
+    {
+      usb_hs_debug_ep0_buffer[i] = data[i];
+    }
+  }
 
   usb_hs_debug_ep0_state = USB_HS_DEBUG_EP0_DATA_IN;
-  (void)HAL_PCD_EP_Transmit(hpcd, 0x80U, (uint8_t *)data, send_len);
+  (void)HAL_PCD_EP_Transmit(hpcd, 0x80U, usb_hs_debug_ep0_buffer, send_len);
 }
 
 static void USBHSDebug_SendStatus(PCD_HandleTypeDef *hpcd)
@@ -1210,17 +1273,19 @@ static void USBHSDebug_CloseBulkIn(PCD_HandleTypeDef *hpcd)
   (void)HAL_PCD_EP_Close(hpcd, USB_HS_DEBUG_EP_IN);
 }
 
-static void USBHSDebug_FillTxBuffer(void)
+static void USBHSDebug_PrepareTxBuffer(void)
 {
   for (uint32_t i = 0U; i < USB_HS_DEBUG_TX_SIZE; ++i)
   {
-    usb_hs_debug_tx_buffer[i] = (uint8_t)usb_hs_debug_sequence;
-    ++usb_hs_debug_sequence;
+    usb_hs_debug_tx_buffer[i] = (uint8_t)i;
   }
 }
 
 static void USBHSDebug_QueueNextPacket(void)
 {
+  const uint8_t *tx_data = usb_hs_debug_tx_buffer;
+  uint32_t tx_len = USB_HS_DEBUG_TX_SIZE;
+
   if ((usb_hs_debug_pcd == NULL) ||
       (usb_hs_debug_configuration == 0U) ||
       (usb_hs_debug_tx_busy != 0U))
@@ -1228,13 +1293,32 @@ static void USBHSDebug_QueueNextPacket(void)
     return;
   }
 
-  USBHSDebug_FillTxBuffer();
+  if (usb_hs_debug_next_tx != NULL)
+  {
+    if ((usb_hs_debug_next_tx(&tx_data, &tx_len) == 0U) ||
+        (tx_data == NULL) ||
+        (tx_len == 0U))
+    {
+      return;
+    }
+    if (usb_hs_debug_first_stream_tx_reported == 0U)
+    {
+      usb_hs_debug_first_stream_tx_reported = 1U;
+      printf("USB HS DEBUG: first producer TX queued, len=%lu\r\n",
+             (unsigned long)tx_len);
+    }
+  }
+
   usb_hs_debug_tx_busy = 1U;
+  usb_hs_debug_current_tx_data = tx_data;
+  usb_hs_debug_current_tx_len = tx_len;
   if (HAL_PCD_EP_Transmit(usb_hs_debug_pcd,
                           USB_HS_DEBUG_EP_IN,
-                          usb_hs_debug_tx_buffer,
-                          USB_HS_DEBUG_TX_SIZE) != HAL_OK)
+                          (uint8_t *)tx_data,
+                          tx_len) != HAL_OK)
   {
+    usb_hs_debug_current_tx_data = NULL;
+    usb_hs_debug_current_tx_len = 0U;
     usb_hs_debug_tx_busy = 0U;
   }
 }
@@ -1307,10 +1391,14 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
   usb_hs_debug_stream_enabled = 0U;
   usb_hs_debug_tx_busy = 0U;
   usb_hs_debug_sequence = 0U;
+  usb_hs_debug_stream_start_requested = 0U;
+  usb_hs_debug_first_stream_tx_reported = 0U;
   usb_hs_debug_pending_address = 0U;
   usb_hs_debug_has_pending_address = 0U;
   usb_hs_debug_ep0_state = USB_HS_DEBUG_EP0_IDLE;
   usb_hs_debug_ep0_print_count = 0U;
+  usb_hs_debug_current_tx_data = NULL;
+  usb_hs_debug_current_tx_len = 0U;
 
   (void)HAL_PCD_EP_Open(hpcd, 0x00U, USB_HS_DEBUG_EP0_MPS, EP_TYPE_CTRL);
   (void)HAL_PCD_EP_Open(hpcd, 0x80U, USB_HS_DEBUG_EP0_MPS, EP_TYPE_CTRL);
@@ -1351,8 +1439,17 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
   }
   else if (epnum == (USB_HS_DEBUG_EP_IN & 0x7FU))
   {
-    usb_hs_debug_completed_bytes += USB_HS_DEBUG_TX_SIZE;
+    const uint8_t *done_data = usb_hs_debug_current_tx_data;
+    uint32_t done_len = usb_hs_debug_current_tx_len;
+
+    usb_hs_debug_completed_bytes += done_len;
     ++usb_hs_debug_completed_transfers;
+    usb_hs_debug_current_tx_data = NULL;
+    usb_hs_debug_current_tx_len = 0U;
+    if ((usb_hs_debug_tx_done != NULL) && (done_data != NULL) && (done_len != 0U))
+    {
+      usb_hs_debug_tx_done(done_data, done_len);
+    }
     usb_hs_debug_tx_busy = 0U;
     USBHSDebug_QueueNextPacket();
   }
@@ -1400,6 +1497,10 @@ void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd)
     usb_hs_debug_configuration = 0U;
     usb_hs_debug_stream_enabled = 0U;
     usb_hs_debug_tx_busy = 0U;
+    usb_hs_debug_stream_start_requested = 0U;
+    usb_hs_debug_first_stream_tx_reported = 0U;
+    usb_hs_debug_current_tx_data = NULL;
+    usb_hs_debug_current_tx_len = 0U;
     printf("USB HS DEBUG: host disconnect detected\r\n");
   }
 }

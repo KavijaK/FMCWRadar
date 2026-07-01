@@ -1,10 +1,6 @@
-../Core/Src/adf4158.c:86:6:ADF4158_Init	48	static
-../Core/Src/adf4158.c:153:6:ADF4158_Program	16	static
-../Core/Src/adf4158.c:171:6:ADF4158_ProgramBladeRfTest	136	static
-../Core/Src/adf4158.c:220:6:ADF4158_EnableRfOutput	8	static
-../Core/Src/adf4158.c:235:13:ADF4158_BuildBladeRfTestRegisters	248	static
-../Core/Src/adf4158.c:337:13:ADF4158_SelectTestClockDividers	72	static
-../Core/Src/adf4158.c:384:17:ADF4158_RoundDivU64	32	static
-../Core/Src/adf4158.c:389:13:ADF4158_PrintMHz	32	static
-../Core/Src/adf4158.c:400:13:ADF4158_Write32	32	static
-../Core/Src/adf4158.c:424:13:ADF4158_Failure	16	static
+../Core/Src/adf4158.c:83:6:ADF4158_Init	48	static
+../Core/Src/adf4158.c:150:6:ADF4158_Program	16	static
+../Core/Src/adf4158.c:166:6:ADF4158_ProgramBladeRfTest	16	static
+../Core/Src/adf4158.c:184:6:ADF4158_EnableRfOutput	8	static
+../Core/Src/adf4158.c:199:13:ADF4158_Write32	32	static
+../Core/Src/adf4158.c:223:13:ADF4158_Failure	16	static

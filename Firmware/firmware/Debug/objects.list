@@ -1,4 +1,5 @@
 "./Core/Src/adf4158.o"
+"./Core/Src/fmcw_stream.o"
 "./Core/Src/ltc1420_debug.o"
 "./Core/Src/main.o"
 "./Core/Src/pdet.o"

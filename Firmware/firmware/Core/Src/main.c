@@ -1,16 +1,17 @@
 #include "main.h"
 
 #include "adf4158.h"
+#include "fmcw_stream.h"
 #include "pdet.h"
 #include "usb_hs_debug.h"
-
 #include <stdio.h>
 
 #define ENABLE_LTC1420_DEBUG_CAPTURE 0U
 #define ENABLE_ADF4158_BLADERF_TEST 0U
-#define ENABLE_USB_HS_DEBUG 1U
+#define ENABLE_FMCW_STREAM 1U
+#define ENABLE_USB_HS_DEBUG 0U
 
-#if ENABLE_USB_HS_DEBUG && defined(__GNUC__)
+#if defined(__GNUC__)
 #define FMCW_MAYBE_UNUSED __attribute__((unused))
 #else
 #define FMCW_MAYBE_UNUSED
@@ -54,15 +55,44 @@ int main(void)
 
 #if ENABLE_USB_HS_DEBUG
   USBHSDebug_Init(&hpcd_USB_OTG_HS);
+#elif ENABLE_FMCW_STREAM
+  PDET_Init();
+  ADF4158_Init();
+  ADF4158_Program();
+  ADF4158_EnableRfOutput();
+  PDET_PrintOnce();
+
+  USBHSDebug_SetTxCallbacks(FMCWStream_USBNextBuffer, FMCWStream_USBTxDone);
+  USBHSDebug_Init(&hpcd_USB_OTG_HS);
+
+  USBHSDebug_ClearStreamStartRequest();
+  printf("STREAM: waiting for USB host configuration before ADC capture\r\n");
+  while (USBHSDebug_IsConfigured() == 0U)
+  {
+    USBHSDebug_Task();
+  }
+  printf("STREAM: USB configured, waiting for PC stream-start request\r\n");
+  while (USBHSDebug_IsStreamStartRequested() == 0U)
+  {
+    USBHSDebug_Task();
+  }
+  printf("STREAM: PC ready, starting MUXOUT-aligned ADC capture\r\n");
+  FMCWStream_Init();
+  if (FMCWStream_Start() == 0U)
+  {
+    Error_Handler();
+  }
 #else
+  PDET_Init();
   ADF4158_Init();
 #if ENABLE_ADF4158_BLADERF_TEST
   ADF4158_ProgramBladeRfTest();
+  PDET_PrintOnce();
 #else
   ADF4158_Program();
 #endif
   ADF4158_EnableRfOutput();
-  PDET_Init();
+  PDET_PrintOnce();
   HAL_Delay(10U);
   PDET_PrintOnce();
 
@@ -75,6 +105,9 @@ int main(void)
   {
 #if ENABLE_USB_HS_DEBUG
     USBHSDebug_Task();
+#elif ENABLE_FMCW_STREAM
+    USBHSDebug_Task();
+    FMCWStream_Task();
 #else
     printf("Heartbeat: %lu ms\r\n", HAL_GetTick());
     HAL_Delay(1000);
@@ -215,7 +248,8 @@ static void MX_GPIO_Init(void)
                           |PLL_CE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, ADC_GAIN_Pin|MIXER_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(ADC_GAIN_GPIO_Port, ADC_GAIN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(MIXER_EN_GPIO_Port, MIXER_EN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : PLL_CLK_Pin PLL_DATA_Pin */
   GPIO_InitStruct.Pin = PLL_CLK_Pin|PLL_DATA_Pin;
