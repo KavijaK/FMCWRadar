@@ -1,6 +1,6 @@
 # Distance Measurement
 
-This module implements beat-frequency based range (distance) measurement for the FMCW Radar.
+This module implements beat frequency based range (distance) measurement for the FMCW Radar.
 
 ## Principle
 
