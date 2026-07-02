@@ -93,7 +93,7 @@ The updated circuit uses the same components as previously specified; the topolo
 
 ## Files
 
-- `fmcw fliter - Copy.asc` - LTSPICE schematic file containing the complete filter circuit (updated to reflect passive two-stage HP and active 4th-order Chebyshev LP)
+- `fmcw fliter - Copy (2).asc` - LTSPICE schematic file containing the complete filter circuit (updated to reflect passive two-stage HP and active 4th-order Chebyshev LP)
 
 ---
 
