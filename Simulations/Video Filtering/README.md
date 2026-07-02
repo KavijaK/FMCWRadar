@@ -2,32 +2,51 @@
 
 ## Overview
 
-This directory contains the LTSPICE simulation for the video filtering stage of the FMCW Radar system. The filter is designed to condition the received signal after the mixer stage, compensating fo[...]
+This directory contains the LTSPICE simulation for the video filtering stage of the FMCW Radar system. The filter conditions the received signal after the mixer stage, preparing it for ADC and subsequent processing. The design was recently updated: the original active high-pass / passive low-pass arrangement has been replaced with a passive high-pass (two-stage) followed by an active 4th-order Chebyshev low-pass (0.1 dB ripple) implemented with a multiple-feedback topology. The same component values and parts are used where applicable.
+
+---
+
+## Main Circuit Architecture (Updated)
+
+### Original Architecture
+
+- A second-order high-pass Chebyshev (0.1 dB ripple) active stage followed by a passive low-pass stage.
+- Rationale: a high-pass to provide linear gain increase with frequency and a passive low-pass to attenuate high-frequency noise.
+
+### What Changed (2026-07-02)
+
+- We moved to a passive high-pass implementation composed of two cascaded second-order passive high-pass stages (two-stage passive high-pass) followed by an active low-pass stage.
+- The low-pass is now an active 4th-order Chebyshev filter with 0.1 dB ripple implemented using a multiple-feedback topology.
+- Reason: the active low-pass Chebyshev (4th order) provides steeper attenuation beyond the intended passband, which better rejects out-of-band energy (e.g., reflections from distant objects) that can contaminate the video signal. Moving the high-pass to passive stages reduces complexity and avoids adding active noise at the low-frequency end, while keeping component selection the same simplifies the update and preserves known input/output impedance characteristics.
+
+---
 
 ## Filter Design
 
-### Architecture
+### Architecture (Now)
 
-The video filter implements a **second-order high-pass Chebyshev filter (0.1 dB ripple)** followed by a **passive low-pass filter**, utilizing a **multiple feedback topology** for improved noise p[...]
+- Passive High-Pass: Two cascaded second-order passive high-pass stages (implemented with the same resistor and capacitor values as before).
+- Active Low-Pass: 4th-order Chebyshev low-pass (0.1 dB ripple) using a multiple-feedback topology implemented with the THS4561 op-amp for the active sections.
 
 ### Key Characteristics
 
 | Parameter | Value | Purpose |
 |-----------|-------|---------|
-| Filter Type | High-Pass + Low-Pass | Bandpass filtering of video signal |
-| High-Pass Order | 2nd Order Chebyshev | Steep rolloff below cutoff frequency |
-| Ripple Specification | 0.1 dB | Minimal passband distortion |
-| Topology | Multiple Feedback | Differential noise mitigation |
-| Passive LP Filter | Yes | Final stage attenuation of high frequencies |
+| Filter Type | Passive High-Pass (2x 2nd order) + Active Low-Pass (4th order Chebyshev) | Bandpass-like conditioning of video signal with steep out-of-band attenuation |
+| High-Pass Order | 2nd Order (two stages) | Removes DC/very-low-frequency content and shapes low-frequency response |
+| Low-Pass Order | 4th Order Chebyshev (0.1 dB ripple) | Strong attenuation beyond the passband to mitigate distant object reflections and mixing products |
+| Ripple Specification | 0.1 dB | Minimal passband distortion in the low-pass section |
+| Topology | Passive RC (HP) + Multiple-Feedback (active LP) | Trade-off: passive HP avoids active noise injection near DC, active LP provides precise, steep rolloff |
+| Components | Same resistors & capacitors as prior design | Eases BOM changes and leverages previously validated parts |
 
-### Design Rationale
+### Design Rationale (Updated)
 
-The high-pass filter counteracts the **40 dB/decade signal attenuation** that occurs with distance in the FMCW radar system. The key design objectives are:
+1. Higher attenuation beyond the expected receive region to reduce contribution from distant objects and spurious high-frequency energy.
+2. Passive high-pass stages remove DC and sub-kHz content without adding active-stage noise or offset.
+3. A 4th-order Chebyshev active low-pass gives a steeper stopband than the prior passive LP, improving suppression of out-of-band interference while keeping controlled passband ripple (0.1 dB).
+4. Multiple-feedback topology permits compact realizations of higher-order Chebyshev responses with good component tolerances and well-defined active-stage behaviour.
 
-1. **Linear gain increase with frequency** - Compensates for distance-dependent power loss
-2. **Peak gain around 200 kHz** - Matches the expected receive signal frequency range
-3. **Differential noise rejection** - Multiple feedback topology reduces common-mode noise
-4. **Passive LP filtering** - Additional rolloff to attenuate high-frequency noise and mixing products
+---
 
 ## Simulation Details
 
@@ -44,33 +63,39 @@ The high-pass filter counteracts the **40 dB/decade signal attenuation** that oc
 | Points per Decade | 300 |
 | Sweep Type | Logarithmic (decade) |
 
-### Expected Performance
+### Expected Performance (Updated)
 
-- **Passband**: Linear gain increase from low frequencies to ~200 kHz
-- **Peak Response**: ~200 kHz (aligned with FMCW transmit frequency)
-- **Attenuation Rate**: Compensates for 40 dB/decade receive signal loss
-- **Stopband**: Passive LP filter provides rolloff above peak frequency
+- **Passband**: Low frequencies below the high-pass cutoff are attenuated; the effective passband begins above the HP cutoff and remains shaped by the active LP.
+- **Peak Response**: The design preserves gain shaping around the expected receive frequency (~200 kHz), but the dominant change is stronger attenuation above the passband.
+- **Attenuation Rate**: The 4th-order active Chebyshev low-pass produces a much steeper stopband than the previous passive LP, improving rejection beyond the intended region.
+- **Stopband**: Active LP provides controlled ripple in passband and steep rolloff into stopband to mitigate distant-object energy and mixing artifacts.
+
+---
 
 ## Circuit Components
 
-The simulation includes:
+The updated circuit uses the same components as previously specified; the topology and staging are changed but component families and values remain.
 
 ### Active Components
 - **U4**: INA849 Instrumentation Amplifier (gain stage)
-- **U5**: THS4561 Op-Amp (active filtering stage)
+- **U5**: THS4561 Op-Amp (active low-pass multiple-feedback sections)
 
 ### Passive Components
-- **Resistors**: Multiple feedback network resistors (1k, 4.99k, 49.9Ω, 422Ω, 120kΩ values)
-- **Capacitors**: Precision filtering capacitors (1n, 2.4n, 10n values)
-- **High-pass elements**: Coupling and feedback capacitors
+- **Resistors**: Multiple feedback network resistors (1k, 4.99k, 49.9Ω, 422Ω, 120kΩ values) used both in passive HP networks and active LP feedback networks where appropriate
+- **Capacitors**: Filtering capacitors (1n, 2.4n, 10n values) used in the passive high-pass stages and in the multiple-feedback low-pass
+- **High-pass elements**: Implemented as passive RC networks in two cascaded stages
 
 ### Power Supply
 - **Dual Supply**: ±5V
 - **Decoupling**: Multiple bypass capacitors (1μ, 100n) on supply rails
 
+---
+
 ## Files
 
-- `fmcw fliter - Copy.asc` - LTSPICE schematic file containing the complete filter circuit
+- `fmcw fliter - Copy.asc` - LTSPICE schematic file containing the complete filter circuit (updated to reflect passive two-stage HP and active 4th-order Chebyshev LP)
+
+---
 
 ## Usage
 
@@ -83,30 +108,38 @@ The simulation includes:
 
 ### Expected Output:
 
-- **Bode Plot**: Shows magnitude response with linear gain increase peaking at ~200 kHz
-- **Phase Response**: Shows phase shift through the filter stages
+- **Bode Plot**: Shows magnitude response with low-frequency attenuation (from the passive HP stages) and a controlled passband followed by a steep rolloff from the 4th-order Chebyshev low-pass
+- **Phase Response**: Shows phase shift through the passive HP and active LP stages
 
-## Performance Specifications
+---
+
+## Performance Specifications (Updated)
 
 - **Input Impedance**: High (determined by instrumentation amplifier)
 - **Output Impedance**: Low (suitable for ADC input or subsequent processing)
-- **Noise Performance**: Improved by differential topology in multiple feedback configuration
-- **Bandwidth (operating region)**: DC-coupled high-pass behaviour with cutoff < 1 kHz and effective operation up to ~1 MHz; note that the response is not flat — "bandwidth" here denotes the intended frequency range over which the filter provides the designed frequency-dependent gain and acceptable group delay rather than a flat passband
-- **Group Delay**: Approximately constant across the intended operating region to preserve signal integrity
-- **Gain**: Frequency-dependent, peaking near 200 kHz
+- **Noise Performance**: Improved in the low-frequency region by using passive HP stages; overall SNR benefits from steep LP attenuation of out-of-band noise
+- **Bandwidth (operating region)**: Designed to remove DC/sub-kHz content, operate effectively up to ~200 kHz with strong attenuation beyond; effective simulation region up to ~1 MHz
+- **Group Delay**: Approximately constant across the intended operating region to preserve signal integrity, subject to the Chebyshev phase characteristics in the passband
+- **Gain**: Frequency-dependent, shaped to match receive characteristics and to attenuate undesired regions
 
-## Design Notes
+---
 
-1. The **multiple feedback topology** in the high-pass stage provides excellent noise rejection by suppressing differential noise components
-2. Chebyshev 0.1 dB ripple specification ensures minimal passband ripple while maintaining steep transition
-3. The passive low-pass filter provides additional selectivity without adding noise from active components
-4. Component tolerances should be maintained within ±1% for accurate frequency response
+## Design Notes (Updated)
+
+1. Using cascaded passive high-pass stages suppresses DC and sub-kHz energy without introducing active-stage offsets or additional active noise at those frequencies.
+2. The 4th-order Chebyshev active low-pass (0.1 dB ripple) provides steep rolloff to reject energy from distant objects and other out-of-band signals while maintaining tight passband control.
+3. Multiple-feedback topology is used in the active low-pass sections to realize the Chebyshev response compactly and with predictable sensitivity to component tolerances.
+4. Component tolerances should be maintained within ±1% for accurate frequency response; if tighter matching is required, consider 0.1% resistors in critical nodes.
+
+---
 
 ## Future Improvements
 
 - PCB layout optimization for EMI/EMC performance
-- Prototype testing and measurement validation; testing the PCB and adjust the gain using resistor R19 on the INA849
-- Frequency response tuning based on actual system measurements
+- Prototype testing and measurement validation; test the PCB and adjust the INA849 gain using resistor R19
+- Frequency response tuning based on actual system measurements; the active LP component values or damping may be adjusted if measured passband ripple or cutoff differs from simulation
+
+---
 
 ## References
 
@@ -116,5 +149,5 @@ The simulation includes:
 
 ---
 
-**Last Updated**: 2026-06-24  
+**Last Updated**: 2026-07-02  
 **Status**: LTSPICE Simulation Phase
