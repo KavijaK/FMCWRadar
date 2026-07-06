@@ -1,5 +1,5 @@
 
-# 🧮 Digital Signal Processing (DSP) Core
+#  Digital Signal Processing (DSP) Core
 
 This directory contains the complete signal processing pipeline for the FMCW Radar. It transforms raw, time-domain Intermediate Frequency (IF) signals sampled by the ADC into actionable spatial data (Range, Velocity, and Micro-displacement).
 
