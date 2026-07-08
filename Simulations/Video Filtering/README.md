@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains the LTSPICE simulation for the video filtering stage of the FMCW Radar system. The filter conditions the received signal after the mixer stage, preparing it for ADC and subsequent processing. The design was recently updated: the original active high-pass / passive low-pass arrangement has been replaced with a passive high-pass (two-stage) followed by an active 4th-order Chebyshev low-pass (0.1 dB ripple) implemented with a multiple-feedback topology. The same component values and parts are used where applicable.
+This directory contains the LTSPICE simulation for the video filtering stage of the FMCW Radar system. The filter conditions the received signal after the mixer stage, preparing it for ADC and subsequent signal processing.
 
 ---
 
@@ -13,11 +13,11 @@ This directory contains the LTSPICE simulation for the video filtering stage of 
 - A second-order high-pass Chebyshev (0.1 dB ripple) active stage followed by a passive low-pass stage.
 - Rationale: a high-pass to provide linear gain increase with frequency and a passive low-pass to attenuate high-frequency noise.
 
-### What Changed (2026-07-02)
+### What Changed
 
 - We moved to a passive high-pass implementation composed of two cascaded second-order passive high-pass stages (two-stage passive high-pass) followed by an active low-pass stage.
-- The low-pass is now an active 4th-order Chebyshev filter with 0.1 dB ripple implemented using a multiple-feedback topology.
-- Reason: the active low-pass Chebyshev (4th order) provides steeper attenuation beyond the intended passband, which better rejects out-of-band energy (e.g., reflections from distant objects) that can contaminate the video signal. Moving the high-pass to passive stages reduces complexity and avoids adding active noise at the low-frequency end, while keeping component selection the same simplifies the update and preserves known input/output impedance characteristics.
+- The low-pass is now an active 4th-order Chebyshev filter with 0.1 dB ripple designed using FilterPro by Texas Instruments.
+- Reason: the active low-pass Chebyshev (4th order) provides steeper attenuation beyond the intended passband, which better rejects out-of-band energy (e.g., reflections from distant objects) that can contaminate the received signal.
 
 ---
 
@@ -26,7 +26,7 @@ This directory contains the LTSPICE simulation for the video filtering stage of 
 ### Architecture (Now)
 
 - Passive High-Pass: Two cascaded second-order passive high-pass stages (implemented with the same resistor and capacitor values as before).
-- Active Low-Pass: 4th-order Chebyshev low-pass (0.1 dB ripple) using a multiple-feedback topology implemented with the THS4561 op-amp for the active sections.
+- Active Low-Pass: 4th-order Chebyshev low-pass (0.1 dB ripple) designed using FilterPro by Texas Instruments and implemented with the THS4561 op-amp.
 
 ### Key Characteristics
 
@@ -37,6 +37,7 @@ This directory contains the LTSPICE simulation for the video filtering stage of 
 | Low-Pass Order | 4th Order Chebyshev (0.1 dB ripple) | Strong attenuation beyond the passband to mitigate distant object reflections and mixing products |
 | Ripple Specification | 0.1 dB | Minimal passband distortion in the low-pass section |
 | Topology | Passive RC (HP) + Multiple-Feedback (active LP) | Trade-off: passive HP avoids active noise injection near DC, active LP provides precise, steep rolloff |
+| Design Tool | FilterPro (Texas Instruments) | Optimized component values and topology for the active low-pass section |
 | Components | Same resistors & capacitors as prior design | Eases BOM changes and leverages previously validated parts |
 
 ### Design Rationale (Updated)
@@ -44,7 +45,7 @@ This directory contains the LTSPICE simulation for the video filtering stage of 
 1. Higher attenuation beyond the expected receive region to reduce contribution from distant objects and spurious high-frequency energy.
 2. Passive high-pass stages remove DC and sub-kHz content without adding active-stage noise or offset.
 3. A 4th-order Chebyshev active low-pass gives a steeper stopband than the prior passive LP, improving suppression of out-of-band interference while keeping controlled passband ripple (0.1 dB).
-4. Multiple-feedback topology permits compact realizations of higher-order Chebyshev responses with good component tolerances and well-defined active-stage behaviour.
+4. FilterPro by Texas Instruments was used to optimize the component values and ensure the multiple-feedback topology provides predictable, high-performance Chebyshev response with good component tolerances.
 
 ---
 
@@ -53,6 +54,7 @@ This directory contains the LTSPICE simulation for the video filtering stage of 
 ### Simulation Tool
 - **Software**: LTSPICE (version 4.1)
 - **Analysis Type**: AC Frequency Sweep
+- **Filter Design Tool**: FilterPro by Texas Instruments (low-pass stage)
 
 ### Frequency Response Analysis
 
@@ -93,7 +95,7 @@ The updated circuit uses the same components as previously specified; the topolo
 
 ## Files
 
-- `fmcw fliter - Copy (2).asc` - LTSPICE schematic file containing the complete filter circuit (updated to reflect passive two-stage HP and active 4th-order Chebyshev LP)
+- `fmcw fliter - Copy (2).asc` - LTSPICE schematic file containing the complete filter circuit (updated to reflect passive two-stage HP and active 4th-order Chebyshev LP designed with FilterPro)
 
 ---
 
@@ -127,8 +129,8 @@ The updated circuit uses the same components as previously specified; the topolo
 ## Design Notes (Updated)
 
 1. Using cascaded passive high-pass stages suppresses DC and sub-kHz energy without introducing active-stage offsets or additional active noise at those frequencies.
-2. The 4th-order Chebyshev active low-pass (0.1 dB ripple) provides steep rolloff to reject energy from distant objects and other out-of-band signals while maintaining tight passband control.
-3. Multiple-feedback topology is used in the active low-pass sections to realize the Chebyshev response compactly and with predictable sensitivity to component tolerances.
+2. The 4th-order Chebyshev active low-pass (0.1 dB ripple) was designed using FilterPro by Texas Instruments to provide steep rolloff and reject energy from distant objects and other out-of-band signals while maintaining tight passband control.
+3. Multiple-feedback topology is used in the active low-pass sections to realize the Chebyshev response compactly and with predictable sensitivity to component tolerances, as recommended by FilterPro.
 4. Component tolerances should be maintained within ±1% for accurate frequency response; if tighter matching is required, consider 0.1% resistors in critical nodes.
 
 ---
@@ -144,10 +146,10 @@ The updated circuit uses the same components as previously specified; the topolo
 ## References
 
 - LTSPICE Documentation
+- FilterPro by Texas Instruments (Filter Design Tool)
 - INA849 Instrumentation Amplifier Datasheet
 - THS4561 Op-Amp Datasheet
 
 ---
 
-**Last Updated**: 2026-07-02  
 **Status**: LTSPICE Simulation Phase
