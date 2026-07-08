@@ -1,0 +1,3 @@
+../Core/Src/pdet.c:15:6:PDET_Init	40	static
+../Core/Src/pdet.c:42:10:PDET_ReadRaw	24	static
+../Core/Src/pdet.c:64:6:PDET_PrintOnce	16	static
