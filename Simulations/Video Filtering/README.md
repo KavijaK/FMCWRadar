@@ -17,7 +17,7 @@ This directory contains the LTSPICE simulation for the video filtering stage of 
 
 - We moved to a passive high-pass implementation composed of two cascaded second-order passive high-pass stages (two-stage passive high-pass) followed by an active low-pass stage.
 - The low-pass is now an active 4th-order Chebyshev filter with 0.1 dB ripple designed using FilterPro by Texas Instruments.
-- Reason: the active low-pass Chebyshev (4th order) provides steeper attenuation beyond the intended passband, which better rejects out-of-band energy (e.g., reflections from distant objects) that can contaminate the received signal.
+- Reason: the active low-pass Chebyshev (4th order) provides steeper attenuation beyond the intended passband, which better rejects out-of-band energy (e.g., reflections from distant objects) that can introduce artifacts in range and velocity estimates.
 
 ---
 
@@ -45,7 +45,30 @@ This directory contains the LTSPICE simulation for the video filtering stage of 
 1. Higher attenuation beyond the expected receive region to reduce contribution from distant objects and spurious high-frequency energy.
 2. Passive high-pass stages remove DC and sub-kHz content without adding active-stage noise or offset.
 3. A 4th-order Chebyshev active low-pass gives a steeper stopband than the prior passive LP, improving suppression of out-of-band interference while keeping controlled passband ripple (0.1 dB).
-4. FilterPro by Texas Instruments was used to optimize the component values and ensure the multiple-feedback topology provides predictable, high-performance Chebyshev response with good component tolerances.
+4. FilterPro by Texas Instruments was used to optimize the component values and ensure the multiple-feedback topology provides predictable, high-performance Chebyshev response with good component tolerance characteristics.
+
+---
+
+## Circuit Components
+
+The updated circuit uses the same components as previously specified; the topology and staging are changed but component families and values remain.
+
+### Filter Circuit Diagram
+
+![Filter Circuit](images/filter_circuit.png)
+
+### Active Components
+- **U4**: INA849 Instrumentation Amplifier (gain stage)
+- **U5**: THS4561 Op-Amp (active low-pass multiple-feedback sections)
+
+### Passive Components
+- **Resistors**: Multiple feedback network resistors (1k, 4.99k, 49.9Ω, 422Ω, 120kΩ values) used both in passive HP networks and active LP feedback networks where appropriate
+- **Capacitors**: Filtering capacitors (1n, 2.4n, 10n values) used in the passive high-pass stages and in the multiple-feedback low-pass
+- **High-pass elements**: Implemented as passive RC networks in two cascaded stages
+
+### Power Supply
+- **Dual Supply**: ±5V
+- **Decoupling**: Multiple bypass capacitors (1μ, 100n) on supply rails
 
 ---
 
@@ -72,24 +95,17 @@ This directory contains the LTSPICE simulation for the video filtering stage of 
 - **Attenuation Rate**: The 4th-order active Chebyshev low-pass produces a much steeper stopband than the previous passive LP, improving rejection beyond the intended region.
 - **Stopband**: Active LP provides controlled ripple in passband and steep rolloff into stopband to mitigate distant-object energy and mixing artifacts.
 
+### Frequency and Phase Response
+
+![Frequency and Phase Response](images/freq_and_phase_response.png)
+
 ---
 
-## Circuit Components
+## Low-Pass Filter Design (FilterPro)
 
-The updated circuit uses the same components as previously specified; the topology and staging are changed but component families and values remain.
+The active low-pass stage was designed using Texas Instruments' FilterPro tool to achieve optimal 4th-order Chebyshev performance:
 
-### Active Components
-- **U4**: INA849 Instrumentation Amplifier (gain stage)
-- **U5**: THS4561 Op-Amp (active low-pass multiple-feedback sections)
-
-### Passive Components
-- **Resistors**: Multiple feedback network resistors (1k, 4.99k, 49.9Ω, 422Ω, 120kΩ values) used both in passive HP networks and active LP feedback networks where appropriate
-- **Capacitors**: Filtering capacitors (1n, 2.4n, 10n values) used in the passive high-pass stages and in the multiple-feedback low-pass
-- **High-pass elements**: Implemented as passive RC networks in two cascaded stages
-
-### Power Supply
-- **Dual Supply**: ±5V
-- **Decoupling**: Multiple bypass capacitors (1μ, 100n) on supply rails
+![Low-Pass Filter Design](images/Low_pass_filter_design.png)
 
 ---
 
@@ -129,7 +145,7 @@ The updated circuit uses the same components as previously specified; the topolo
 ## Design Notes (Updated)
 
 1. Using cascaded passive high-pass stages suppresses DC and sub-kHz energy without introducing active-stage offsets or additional active noise at those frequencies.
-2. The 4th-order Chebyshev active low-pass (0.1 dB ripple) was designed using FilterPro by Texas Instruments to provide steep rolloff and reject energy from distant objects and other out-of-band signals while maintaining tight passband control.
+2. The 4th-order Chebyshev active low-pass (0.1 dB ripple) was designed using FilterPro by Texas Instruments to provide steep rolloff and reject energy from distant objects and other out-of-band signals that would otherwise corrupt range and velocity measurements.
 3. Multiple-feedback topology is used in the active low-pass sections to realize the Chebyshev response compactly and with predictable sensitivity to component tolerances, as recommended by FilterPro.
 4. Component tolerances should be maintained within ±1% for accurate frequency response; if tighter matching is required, consider 0.1% resistors in critical nodes.
 
