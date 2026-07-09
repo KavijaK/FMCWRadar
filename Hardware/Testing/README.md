@@ -29,15 +29,11 @@ This folder contains GNU Radio Companion (GRC) test flows and notes used during 
    - Purpose: Receiver chain verification and antenna testing.
    - What to check: Probe LNA outputs with H near-field probe, verify which LNAs are active or faulty. Feed a bladeRF transmitter directly into the RX SMA input for a controlled reference signal.
    - Mixer check: Observe mixer output and beat/difference frequencies when LO/reference is offset slightly from the transmitter. Log the IF/beat frequency and confirm expected behavior.
-   - Explicit checks to run:
-     - Verify LNA1 output (near-field probe) — expected: present RF when working, otherwise replace.
-     - Verify LNA2 output downstream — expected: present if LNA1 absent only LNA2 may show lower power.
-     - With a known bladeRF TX tone/chirp at the RX SMA input, measure mixer IF/beat frequency while varying LO/reference and confirm linear response.
 
 3. Transmitter check: tx_5p8Ghz_check.grc
    - Purpose: Verify FMCW radar transmitter output and waterfall plots.
    - What to check: Observe the 5.8 GHz chirp on waterfall and spectrum analyzer, use adjustable center-frequency slider (smooth ±300 kHz) and chirp time control to visualize the sweep clearly.
-   - Implementation note: Focus on waterfall diagrams — set chirp time, sweep range, and sample rate so the chirp appears as a clear slanted line across the waterfall.
+   - Implementation note: Focus on waterfall diagrams. Set chirp time, sweep range, and sample rate so the chirp appears as a clear slanted line across the waterfall.
 
 4. Antenna test: bladerf_antenna_test_5p8GHz.grc
    - Purpose: Measure transmitted power into the horn antenna and received levels on bladeRF.
@@ -54,20 +50,19 @@ This folder contains GNU Radio Companion (GRC) test flows and notes used during 
 - Open the .grc file in GNU Radio Companion.
 - Set sample rate to the rate supported by bladeRF for operation near 5.8 GHz.
 - Set center frequency (default: 5.8e9) and chirp parameters as appropriate for the flow.
-- Use GUI sliders to vary chirp time and small center-frequency offsets.
+- Use GUI sliders to vary chirp time, small center-frequency offsets, transmitter gain, and/or receiver gain.
 - Always use attenuators when connecting TX to RX or spectrum analyzer to avoid damage.
 
 ## Recommended default parameters
 - Center frequency: 5.8e9 (5.8 GHz)
 - Sweep range for transmitter-check: ±300e3 (±300 kHz)
-- Chirp time slider: 1e-3 to 50e-3 s (1 ms to 50 ms)
+- Chirp time slider: 1e-3 to 8 s (1 ms to 8 s)
 - FFT size / waterfall resolution: 2048 or 4096 bins (tune as needed)
 
 ## Measurement & safety notes
-- Always use attenuators or directional couplers when connecting TX to RX or to the spectrum analyzer.
+- Use attenuators if needed when connecting TX to RX or to the spectrum analyzer.
 - Limit bladeRF TX output power to avoid damaging the receiver front-end or LNAs.
 - Ensure antennas are properly oriented and maintain safe RF exposure distances.
-- Log measurement conditions (attenuation, cable loss, probe positions) to allow reproducible comparisons.
 
 ## Observed issues & fixes (from this test campaign)
 - Transmitter faults were discovered and iteratively fixed until stable chirp output was observed on the spectrum analyzer and waterfall plots.
@@ -75,15 +70,3 @@ This folder contains GNU Radio Companion (GRC) test flows and notes used during 
 - Using a small offset between the LO-fed transmitter and the bladeRF reference helped visualize the beat frequency and confirmed proper LO splitting and mixer response.
 - Near-field H-probe testing was instrumental in locating faulty components and in interpreting spectrum analyzer power readings.
 
-## Files to upload
-- bladerf_self_test.grc
-- rx_5p8Ghz_check.grc
-- tx_5p8Ghz_check.grc
-- bladerf_antenna_test_5p8GHz.grc
-- Screenshots of waterfall/FFT and spectrum-analyzer plots (include measurement settings)
-- Short test logs (date, equipment, attenuations, observations) for each run
-
-## Next steps / suggested improvements
-- Add automatic logging of FFT/waterfall snapshots and timestamps inside each GRC flow.
-- Add a small Python or GNU Radio block to compute and log beat frequency and SNR for antenna tests.
-- Calibrate power readings by measuring cable/probe losses and adding correction factors.
