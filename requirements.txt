@@ -3,6 +3,7 @@
 
 # Core numerical computing
 numpy>=1.26
+scipy>=1.10
 
 # USB communication (for radar hardware interface)
 pyusb>=1.2
