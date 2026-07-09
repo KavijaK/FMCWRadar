@@ -47,7 +47,7 @@ HEADER_LEN = 64
 PAYLOAD_BYTES = 20000
 PAYLOAD_WORDS = 5000
 MAGIC = 0x52444152
-FRAMES_PER_READ = 8
+FRAMES_PER_READ = 4
 
 # Firmware header format from fmcw_stream.c / fmcw_stream.h.
 HEADER = np.dtype([
