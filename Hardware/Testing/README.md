@@ -1,6 +1,6 @@
 # Hardware / Testing
 
-This folder contains GNU Radio Companion (GRC) test flows and notes used during hardware bring-up and verification of the FMCW radar front-end. Tests were performed with a bladeRF micro 2.0, a spectrum analyzer, waterfall/FFT plots, and H near-field probes. The tests include transmitter, receiver, antenna checks, and debug steps for LNAs and the mixer.
+This folder contains GNU Radio Companion (GRC) test flows and notes used during hardware bring-up and verification of the FMCW radar front-end. Tests were performed with a bladeRF micro 2.0, a spectrum analyzer, and GRC flows included below.
 
 ## Overview / Goals
 - Verify bladeRF TX/RX functionality and expected waterfall/FFT signatures.
@@ -25,7 +25,7 @@ This folder contains GNU Radio Companion (GRC) test flows and notes used during 
    - What to check: bladeRF TX -> bladeRF RX loop, waterfall and FFT sinks, adjustable chirp time so time-varying frequencies are clear.
    - Implementation note: Include a chirp generator (or tone source) with a GUI slider for chirp time and amplitude so you can quickly change sweep parameters and observe how the waterfall reacts.
 
-2. Receiver check: rx_5p8GHz_check.grc
+2. Receiver check: rx_5p8Ghz_check.grc
    - Purpose: Receiver chain verification and antenna testing.
    - What to check: Probe LNA outputs with H near-field probe, verify which LNAs are active or faulty. Feed a bladeRF transmitter directly into the RX SMA input for a controlled reference signal.
    - Mixer check: Observe mixer output and beat/difference frequencies when LO/reference is offset slightly from the transmitter. Log the IF/beat frequency and confirm expected behavior.
@@ -34,7 +34,7 @@ This folder contains GNU Radio Companion (GRC) test flows and notes used during 
      - Verify LNA2 output downstream — expected: present if LNA1 absent only LNA2 may show lower power.
      - With a known bladeRF TX tone/chirp at the RX SMA input, measure mixer IF/beat frequency while varying LO/reference and confirm linear response.
 
-3. Transmitter check: tx_5p8GHz_check.grc
+3. Transmitter check: tx_5p8Ghz_check.grc
    - Purpose: Verify FMCW radar transmitter output and waterfall plots.
    - What to check: Observe the 5.8 GHz chirp on waterfall and spectrum analyzer, use adjustable center-frequency slider (smooth ±300 kHz) and chirp time control to visualize the sweep clearly.
    - Implementation note: Focus on waterfall diagrams — set chirp time, sweep range, and sample rate so the chirp appears as a clear slanted line across the waterfall.
@@ -46,9 +46,9 @@ This folder contains GNU Radio Companion (GRC) test flows and notes used during 
 
 ## Quick test checklist (run in order)
 1. Self-test: Run bladerf_self_test.grc to confirm bladeRF and GRC sinks behave as expected (waterfall/FFT). Adjust chirp time until the chirp is clearly visible.
-2. TX check: Run tx_5p8GHz_check.grc connected to the FMCW transmitter (or bladeRF acting as TX) and confirm stable 5.8 GHz chirp on waterfall and spectrum analyzer.
+2. TX check: Run tx_5p8Ghz_check.grc connected to the FMCW transmitter (or bladeRF acting as TX) and confirm stable 5.8 GHz chirp on waterfall and spectrum analyzer.
 3. Antenna test: Run bladerf_antenna_test_5p8GHz.grc with TX set to constant 5.800 GHz and bladeRF RX to 5.799 GHz. Record received power at horn antenna and note any LO/DC leakage effects.
-4. RX check: Run rx_5p8GHz_check.grc. Probe LNA stages with H-probe while driving the RX SMA with bladeRF. Verify LNA outputs and mixer IF/beat frequency. Replace/repair failed LNAs and re-test.
+4. RX check: Run rx_5p8Ghz_check.grc. Probe LNA stages with H-probe while driving the RX SMA with bladeRF. Verify LNA outputs and mixer IF/beat frequency. Replace/repair failed LNAs and re-test.
 
 ## How to run (high-level)
 - Open the .grc file in GNU Radio Companion.
@@ -77,8 +77,8 @@ This folder contains GNU Radio Companion (GRC) test flows and notes used during 
 
 ## Files to upload
 - bladerf_self_test.grc
-- rx_5p8GHz_check.grc
-- tx_5p8GHz_check.grc
+- rx_5p8Ghz_check.grc
+- tx_5p8Ghz_check.grc
 - bladerf_antenna_test_5p8GHz.grc
 - Screenshots of waterfall/FFT and spectrum-analyzer plots (include measurement settings)
 - Short test logs (date, equipment, attenuations, observations) for each run
