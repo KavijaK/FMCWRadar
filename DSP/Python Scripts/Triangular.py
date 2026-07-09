@@ -1,9 +1,18 @@
-import serial
 import numpy as np
 import time
 from multiprocessing import Process, Queue
 from queue import Full
 import matplotlib.pyplot as plt
+
+# USB stream used by the STM32 FMCW firmware.
+import usb.core
+import usb.util
+from usb.backend import libusb1
+
+try:
+    import libusb_package
+except ImportError:
+    libusb_package = None
 
 # ---------------------------------------------------------
 # PHYSICAL & RADAR PARAMETERS
@@ -25,61 +34,170 @@ BYTES_PER_CHIRP = SAMPLES_PER_CHIRP * 2      # 20,000 bytes per sweep
 BYTES_PER_CYCLE = BYTES_PER_CHIRP * 2        # 40,000 bytes total (UP + DOWN)
 CHIRPS_PER_FRAME = 128                       # Number of triangular cycles per batch
 
-def data_producer(queue, port, baud):
-    """Thread 1: Hunts for the Sync Header and pushes 40,000-byte cycle payloads."""
-    
-    def connect_to_radar():
-        while True:
-            try:
-                s = serial.Serial(port, baud, timeout=0.1) 
-                print("\n[PRODUCER] Radar Hardware Detected and Connected.")
-                return s
-            except serial.SerialException:
-                print("[PRODUCER] Waiting for Radar PCB to be plugged in...")
-                time.sleep(2)
-    
-    ser = connect_to_radar()
-    SYNC_WORD = b'\xff\xff\xff\xff' 
-    buffer = bytearray()
-    
+# ---------------------------------------------------------
+# STM32 USB STREAM CONSTANTS
+# ---------------------------------------------------------
+VID = 0x1209
+PID = 0x4158
+EP_IN = 0x81
+REQ_START_STREAM = 0x30
+
+FRAME_LEN = 20480
+HEADER_LEN = 64
+PAYLOAD_BYTES = 20000
+PAYLOAD_WORDS = 5000
+MAGIC = 0x52444152
+FRAMES_PER_READ = 8
+
+# Firmware header format from fmcw_stream.c / fmcw_stream.h.
+HEADER = np.dtype([
+    ("magic", "<u4"),
+    ("version", "<u2"),
+    ("header_len", "<u2"),
+    ("frame_len", "<u4"),
+    ("slope_seq", "<u4"),
+    ("triangle_seq", "<u4"),
+    ("slope_id", "<u2"),
+    ("flags", "<u2"),
+    ("sample_rate_hz", "<u4"),
+    ("samples_per_slope", "<u4"),
+    ("adc_bits", "<u2"),
+    ("words_per_slope", "<u2"),
+    ("timestamp_us", "<u4"),
+    ("muxout_count", "<u4"),
+    ("dropped_frames", "<u4"),
+    ("dcmi_risr", "<u4"),
+    ("dma_lisr", "<u4"),
+    ("reserved0", "<u4"),
+    ("reserved1", "<u4"),
+])
+
+
+def get_backend():
+    if libusb_package is None:
+        return libusb1.get_backend()
+    return libusb1.get_backend(find_library=libusb_package.find_library)
+
+
+def open_usb_device():
+    backend = get_backend()
+    if backend is None:
+        raise RuntimeError("No PyUSB/libusb backend found. Install pyusb and libusb-package.")
+
+    access_hint_printed = False
+    while True:
+        dev = usb.core.find(idVendor=VID, idProduct=PID, backend=backend)
+        if dev is None:
+            print("[PRODUCER] Waiting for FMCW USB HS stream device...")
+            time.sleep(0.5)
+            continue
+
+        try:
+            dev.set_configuration()
+            print(f"\n[PRODUCER] FMCW USB Radar Connected: VID=0x{VID:04X} PID=0x{PID:04X}")
+            return dev
+        except usb.core.USBError as exc:
+            if getattr(exc, "errno", None) == 13 and not access_hint_printed:
+                print("[PRODUCER] Device visible, but Windows denied access.")
+                print("[PRODUCER] Close other USB viewers or bind the interface to WinUSB with Zadig.")
+                access_hint_printed = True
+            else:
+                print(f"[PRODUCER] USB open/config failed: {exc}. Retrying...")
+            usb.util.dispose_resources(dev)
+            time.sleep(0.5)
+
+
+def read_exact(dev, size):
+    chunks = []
+    remaining = size
+    while remaining:
+        try:
+            chunk = bytes(dev.read(EP_IN, remaining, timeout=2000))
+        except usb.core.USBTimeoutError as exc:
+            raise TimeoutError("USB read timeout") from exc
+        if not chunk:
+            raise TimeoutError("USB read returned no data")
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(chunks)
+
+
+def decode_usb_slope_payload(frame):
+    """Decode one STM32 USB frame into 10,000 offset-binary uint16 samples.
+
+    Triangular.py originally consumed unsigned 16-bit samples and removed the
+    mean before FFT. The LTC1420 stream is signed 12-bit two's-complement, so
+    this producer converts signed samples to offset-binary uint16. That keeps
+    the original consumer and DSP logic unchanged.
+    """
+    words = np.frombuffer(frame, dtype="<u4", count=PAYLOAD_WORDS, offset=HEADER_LEN)
+    lo = (words & 0x0FFF).astype(np.int16)
+    hi = ((words >> 16) & 0x0FFF).astype(np.int16)
+
+    lo = ((lo ^ 0x0800) - 0x0800).astype(np.int16)
+    hi = ((hi ^ 0x0800) - 0x0800).astype(np.int16)
+
+    samples = np.empty(SAMPLES_PER_CHIRP, dtype=np.uint16)
+    samples[0::2] = (lo.astype(np.int32) + 2048).astype(np.uint16)
+    samples[1::2] = (hi.astype(np.int32) + 2048).astype(np.uint16)
+    return samples
+
+
+def data_producer(queue, port=None, baud=None):
+    """Thread 1: Reads STM32 USB frames and pushes 40,000-byte UP+DOWN cycles."""
+
+    dev = open_usb_device()
+    dev.ctrl_transfer(0x40, REQ_START_STREAM, 0, 0, None)
+    print("[PRODUCER] Stream started. Pairing slope_id 0/1 into triangular cycles.")
+
+    current_up_slope = None
+
     while True:
         try:
-            incoming = ser.read(max(1, ser.in_waiting))
-            if incoming:
-                buffer.extend(incoming)
-            
-            sync_index = buffer.find(SYNC_WORD)
-            if sync_index != -1:
-                # We expect the header + the FULL triangular cycle payload
-                target_length = sync_index + len(SYNC_WORD) + BYTES_PER_CYCLE
-                
-                if len(buffer) >= target_length:
-                    start_data = sync_index + len(SYNC_WORD)
-                    end_data = start_data + BYTES_PER_CYCLE
-                    pure_data = buffer[start_data:end_data]
-                    
+            batch = read_exact(dev, FRAME_LEN * FRAMES_PER_READ)
+
+            for offset in range(0, len(batch), FRAME_LEN):
+                frame = batch[offset:offset + FRAME_LEN]
+                if len(frame) != FRAME_LEN:
+                    continue
+
+                header = np.frombuffer(frame, dtype=HEADER, count=1, offset=0)[0]
+                if int(header["magic"]) != MAGIC:
+                    continue
+                if int(header["header_len"]) != HEADER_LEN:
+                    continue
+                if int(header["frame_len"]) != FRAME_LEN:
+                    continue
+                if int(header["samples_per_slope"]) != SAMPLES_PER_CHIRP:
+                    print("[PRODUCER] Header sample count does not match Triangular.py constants.")
+                    continue
+
+                slope_samples = decode_usb_slope_payload(frame)
+                slope_id = int(header["slope_id"])
+
+                if slope_id == 0:
+                    current_up_slope = slope_samples
+                elif slope_id == 1 and current_up_slope is not None:
+                    pure_data = current_up_slope.tobytes() + slope_samples.tobytes()
                     try:
                         queue.put_nowait(pure_data)
                     except Full:
                         pass
-                    
-                    buffer = buffer[end_data:]
-            else:
-                # Prevent buffer from growing infinitely if no sync word is found
-                if len(buffer) > BYTES_PER_CYCLE * 3:
-                    buffer = buffer[-BYTES_PER_CYCLE:] 
-                    
-        except serial.SerialException:
-            print("\n[PRODUCER] ERROR: Connection lost! (Cable unplugged?)")
-            ser.close()             
-            buffer.clear()          
-            ser = connect_to_radar() 
-            
+                    current_up_slope = None
+
+        except TimeoutError as exc:
+            print(f"[PRODUCER] USB warning: {exc}")
+            continue
+        except usb.core.USBError as exc:
+            print(f"\n[PRODUCER] USB connection lost: {exc}")
+            usb.util.dispose_resources(dev)
+            dev = open_usb_device()
+            dev.ctrl_transfer(0x40, REQ_START_STREAM, 0, 0, None)
+            current_up_slope = None
         except KeyboardInterrupt:
             break
-            
-    if ser.is_open:
-        ser.close()
+
+    usb.util.dispose_resources(dev)
 
 def process_2d_fft(matrix, range_window, doppler_window):
     """Helper function to run the 2D FFT pipeline on a given matrix"""
@@ -192,7 +310,7 @@ def data_consumer(queue):
 
 if __name__ == '__main__':
     data_queue = Queue(maxsize=128) # Kept small to prevent memory backup
-    producer_process = Process(target=data_producer, args=(data_queue, 'COM3', 115200))
+    producer_process = Process(target=data_producer, args=(data_queue,))
     producer_process.start()
     
     try:
