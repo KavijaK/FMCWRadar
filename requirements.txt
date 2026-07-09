@@ -1,0 +1,16 @@
+# FMCW Radar Python Dependencies
+# Auto-generated from script analysis
+
+# Core numerical computing
+numpy>=1.26
+
+# USB communication (for radar hardware interface)
+pyusb>=1.2
+libusb-package>=1.0
+
+# Plotting and visualization
+matplotlib>=3.7
+
+# GUI frameworks (for live viewers and lab tools)
+pyqtgraph>=0.13
+PyQt6>=6.4
