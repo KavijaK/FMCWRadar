@@ -58,7 +58,9 @@ int main(void)
 #elif ENABLE_FMCW_STREAM
   PDET_Init();
   ADF4158_Init();
-  ADF4158_Program();
+//  ADF4158_Program();
+  ADF4158_ProgramFastChirpTest();
+  //ADF4158_ProgramBladeRfTest();
   ADF4158_EnableRfOutput();
   PDET_PrintOnce();
 

@@ -1,6 +1,7 @@
-../Core/Src/adf4158.c:83:6:ADF4158_Init	2
-../Core/Src/adf4158.c:150:6:ADF4158_Program	2
-../Core/Src/adf4158.c:166:6:ADF4158_ProgramBladeRfTest	2
-../Core/Src/adf4158.c:184:6:ADF4158_EnableRfOutput	2
-../Core/Src/adf4158.c:199:13:ADF4158_Write32	3
-../Core/Src/adf4158.c:223:13:ADF4158_Failure	1
+../Core/Src/adf4158.c:100:6:ADF4158_Init	2
+../Core/Src/adf4158.c:167:6:ADF4158_Program	2
+../Core/Src/adf4158.c:183:6:ADF4158_ProgramBladeRfTest	2
+../Core/Src/adf4158.c:201:6:ADF4158_ProgramFastChirpTest	2
+../Core/Src/adf4158.c:220:6:ADF4158_EnableRfOutput	2
+../Core/Src/adf4158.c:235:13:ADF4158_Write32	3
+../Core/Src/adf4158.c:259:13:ADF4158_Failure	1

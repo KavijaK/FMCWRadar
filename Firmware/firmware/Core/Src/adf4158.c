@@ -33,26 +33,41 @@ static const uint32_t adf4158_registers[] = {
   0xF88E8000U, /* R0: INT = 285, FRAC MSB = 0, ramp enabled */
 };
 
-/* Temporary bladeRF transmitter test profile:
- * center frequency = 5.800000000 GHz.
- * start frequency = 5.799000013 GHz from INT = 289, FRAC = 31876732.
- * step time = CLK1 * CLK2 / fPFD = 800 * 1000 / 20 MHz = 40.000 ms.
- * one-way chirp time = 200 steps * 40.000 ms = 8.000000 s.
- * step size = 20 MHz / 2^25 * 16777 * 2^0 = 9.999871 kHz.
- * one-way bandwidth = 200 steps * 9.999871 kHz = 1.999974 MHz.
- * stop frequency = 5.800999987 GHz.
+/* Standalone PLL lock test profile:
+ * fixed 5.800000000 GHz CW from INT = 290, FRAC = 0, fPFD = 20 MHz.
+ * MUXOUT = digital lock detect for probing PE5.
  */
 static const uint32_t adf4158_bladerf_test_registers[] = {
   0x00000007U, /* R7: ramp delay */
-  0x00000646U, /* R6: N_STEPS = 200, ramp 1 */
-  0x00800646U, /* R6: N_STEPS = 200, ramp 2 */
-  0x00020C4DU, /* R5: DEV = 16777, DEV_OFFSET = 0, ramp 1 */
-  0x00820C4DU, /* R5: DEV = 16777, DEV_OFFSET = 0, ramp 2 */
-  0x0079F404U, /* R4: CLK2 = 1000, ramp divider mode, ramp MUXOUT */
+  0x00003E86U, /* R6: N_STEPS = 2000, ramp 1 */
+  0x00803E86U, /* R6: N_STEPS = 2000, ramp 2 */
+  0x001A9045U, /* R5: DEV = 21000, DEV_OFFSET = 3, ramp 1 */
+  0x009A9045U, /* R5: DEV = 21000, DEV_OFFSET = 3, ramp 2 */
+  0x00180504U, /* R4: CLK2 = 10, ramp divider mode, no ramp-complete MUXOUT */
   0x00000443U, /* R3: triangle ramp function */
-  0x0F409902U, /* R2: CLK1 = 800, R divider = 1, CP = 5 mA, prescaler = 8/9 */
-  0x033E0001U, /* R1: FRAC LSB = 1660 */
-  0xF890F998U, /* R0: INT = 289, FRAC MSB = 3891, ramp enabled */
+  0x0F40800AU, /* R2: CLK1 = 1, R divider = 1, CP = 5 mA, prescaler = 8/9 */
+  0x00000001U, /* R1: FRAC LSB = 0 */
+  0x30910000U, /* R0: INT = 290, FRAC MSB = 0, ramp disabled, MUXOUT = digital lock detect */
+};
+
+/* Fast FMCW test profile:
+ * same start frequency and frequency step as the normal preset.
+ * step time = CLK1 * CLK2 / fPFD = 1 * 1 / 20 MHz = 0.05 us.
+ * one-way bandwidth = 1600 steps * 125.169754 kHz = 200.271606 MHz.
+ * one-way chirp time = 1600 steps * 0.05 us = 0.080 ms.
+ * triangle period = 0.160 ms.
+ */
+static const uint32_t adf4158_fast_chirp_test_registers[] = {
+  0x00000007U, /* R7: ramp delay */
+  0x00003206U, /* R6: N_STEPS = 1600, ramp 1 */
+  0x00803206U, /* R6: N_STEPS = 1600, ramp 2 */
+  0x001B3455U, /* R5: DEV = 26250, DEV_OFFSET = 3, ramp 1 */
+  0x009B3455U, /* R5: DEV = 26250, DEV_OFFSET = 3, ramp 2 */
+  0x00780084U, /* R4: CLK2 = 1, ramp divider mode, ramp MUXOUT */
+  0x00000443U, /* R3: triangle ramp function */
+  0x0F40800AU, /* R2: CLK1 = 1, R divider = 1, CP = 5 mA, prescaler = 8/9 */
+  0x00000001U, /* R1: FRAC LSB = 0 */
+  0xF88E8000U, /* R0: INT = 285, FRAC MSB = 0, ramp enabled */
 };
 
 /* Register write order is R7 down to R0.
@@ -74,6 +89,8 @@ _Static_assert((sizeof(adf4158_registers) / sizeof(adf4158_registers[0])) == ADF
                "ADF4158 original preset must contain 10 register writes");
 _Static_assert((sizeof(adf4158_bladerf_test_registers) / sizeof(adf4158_bladerf_test_registers[0])) == ADF4158_REGISTER_COUNT,
                "ADF4158 test preset must contain 10 register writes");
+_Static_assert((sizeof(adf4158_fast_chirp_test_registers) / sizeof(adf4158_fast_chirp_test_registers[0])) == ADF4158_REGISTER_COUNT,
+               "ADF4158 fast chirp test preset must contain 10 register writes");
 _Static_assert((sizeof(adf4158_register_names) / sizeof(adf4158_register_names[0])) == ADF4158_REGISTER_COUNT,
                "ADF4158 register names must match register write count");
 
@@ -165,9 +182,9 @@ void ADF4158_Program(void)
 
 void ADF4158_ProgramBladeRfTest(void)
 {
-  printf("ADF4158 TEST: programming 8 s, 1.999974 MHz triangle ramp\r\n");
-  printf("ADF4158 TEST: start=5799.000013 MHz stop=5800.999987 MHz center=5800.000000 MHz\r\n");
-  printf("ADF4158 TEST: DEV=16777 DEV_OFFSET=0 CLK1=800 CLK2=1000 N_STEPS=200\r\n");
+  printf("ADF4158 TEST: programming 5.800000 GHz CW\r\n");
+  printf("ADF4158 TEST: INT=290 FRAC=0 fPFD=20 MHz, ramp disabled\r\n");
+  printf("ADF4158 TEST: MUXOUT PE5 = digital lock detect\r\n");
 
   for (uint32_t i = 0U; i < ADF4158_REGISTER_COUNT; ++i)
   {
@@ -179,6 +196,25 @@ void ADF4158_ProgramBladeRfTest(void)
 
   HAL_Delay(1U);
   printf("ADF4158 TEST: programming complete\r\n");
+}
+
+void ADF4158_ProgramFastChirpTest(void)
+{
+  printf("ADF4158 FAST TEST: programming 0.08 ms, 200.272 MHz triangle ramp\r\n");
+  printf("ADF4158 FAST TEST: start=5700.000000 MHz stop=5900.271606 MHz center=5800.135803 MHz\r\n");
+  printf("ADF4158 FAST TEST: DEV=26250 DEV_OFFSET=3 CLK1=1 CLK2=1 N_STEPS=1600\r\n");
+  printf("ADF4158 FAST TEST: MUXOUT PE5 = ramp complete\r\n");
+
+  for (uint32_t i = 0U; i < ADF4158_REGISTER_COUNT; ++i)
+  {
+    printf("ADF4158 FAST TEST: write %s = 0x%08lX\r\n",
+           adf4158_register_names[i],
+           (unsigned long)adf4158_fast_chirp_test_registers[i]);
+    ADF4158_Write32(adf4158_fast_chirp_test_registers[i]);
+  }
+
+  HAL_Delay(1U);
+  printf("ADF4158 FAST TEST: programming complete\r\n");
 }
 
 void ADF4158_EnableRfOutput(void)
