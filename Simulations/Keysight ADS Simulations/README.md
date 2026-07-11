@@ -36,19 +36,19 @@ The transmitter must deliver high power to the antenna while maintaining lineari
 
 **Tx Schematic and S-Parameter Performance**
 The schematic captures the full Tx cascade. The primary objective is verifying the gain delivered to the antenna port while monitoring the coupled LO power.
-![Transmitter Schematic and Gain](Transmitter.jpeg)
+![Transmitter Schematic and Gain](images/Transmitter.jpeg)
 *The S-parameter simulation shows a forward transmission gain (S21) of 24.317 dB at exactly 5.810 GHz delivered to the antenna. The lower trace highlights the power coupled to the mixer, which must be carefully tuned to provide an optimal LO drive level without saturating the mixer.*
 
 **Cascaded Tx Frequency Response**
-![Cascaded Tx Frequency Response](frequency Response of the Cascades Transmitter.jpeg)
+![Cascaded Tx Frequency Response](images/frequency Response of the Cascades Transmitter.jpeg)
 *This broadband S21 plot illustrates the frequency response of the entire cascaded transmitter. The system exhibits a wide, flat gain profile centered around the 5.8 GHz FMCW bandwidth, ensuring that as the chirp sweeps across frequencies, the transmitted power remains consistent.*
 
 **Power Amplifier and Filter Characteristics**
-![Power Amplifier Filter Simulation](TQP5523 Power Amplifier Simulation.jpeg)
+![Power Amplifier Filter Simulation](images/TQP5523 Power Amplifier Simulation.jpeg)
 *Simulation focusing on the TQP5523 power amplifier and its associated bandpass characteristics. This confirms the sharp roll-off needed to suppress out-of-band emissions, which is strictly regulated in traffic radar applications.*
 
 **Tx Power Transfer and Compression**
-![Tx Power Input vs Output](Power Input vs Power Output from Cascaded badpass filter-power amplifier- splitter -antenna.jpeg)
+![Tx Power Input vs Output](images/Power Input vs Power Output from Cascaded badpass filter-power amplifier- splitter -antenna.jpeg)
 *These plots detail the absolute power transfer of the Tx chain. Tracking the magnitude and dBm of the output against the input power is critical to establishing the maximum linear operating region before the PA reaches its 1dB compression point.*
 
 ---
@@ -58,9 +58,9 @@ The schematic captures the full Tx cascade. The primary objective is verifying t
 The receiver must detect faint reflections, amplify them linearly, and mix them with the Tx reference to produce the Intermediate Frequency (IF) beat signal used for ranging and velocity calculations.
 
 **Receiver Schematic and Harmonic Balance**
-![Receiver Schematic](Reciever.jpeg)
+![Receiver Schematic](images/Reciever.jpeg)
 *The Rx cascade incorporating the LNA, filtering, and the ADL5801 mixer. The Harmonic Balance analysis sweeps the received RF input power from -80 dBm upwards. The resulting curve maps the downconverted IF power output from the mixer. This simulation is strictly required to establish the dynamic range of the receiver and map the saturation point of the downconversion process.*
 
 **LNA Gain Compression (P1dB)**
-![LNA Power Response](LNA amplifier.jpeg)
+![LNA Power Response](images/LNA amplifier.jpeg)
 *This graph explicitly maps the output power (dBm) versus input power (dBm) for the front-end LNA. The linear slope represents the LNA's small-signal gain. As input power increases (simulating a target at extremely close range), the curve flattens. Identifying this P1dB compression point is essential to prevent system blinding when highly reflective traffic vehicles pass near the radar.*
