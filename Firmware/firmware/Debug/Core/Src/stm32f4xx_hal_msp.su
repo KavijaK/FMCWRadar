@@ -1,0 +1,5 @@
+../Core/Src/stm32f4xx_hal_msp.c:64:6:HAL_MspInit	16	static
+../Core/Src/stm32f4xx_hal_msp.c:87:6:HAL_DCMI_MspInit	56	static
+../Core/Src/stm32f4xx_hal_msp.c:184:6:HAL_DCMI_MspDeInit	16	static
+../Core/Src/stm32f4xx_hal_msp.c:235:6:HAL_PCD_MspInit	56	static
+../Core/Src/stm32f4xx_hal_msp.c:300:6:HAL_PCD_MspDeInit	16	static
