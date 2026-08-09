@@ -14,5 +14,5 @@ This folder contains the CAD files, and physical specifications for the antenna.
 * `Horn_Antenna.STEP` – Universal CAD format for cross-platform compatibility.
 
 ## Manufacturing Specs
-* **Material:** [Stainless Steel]
-* **Feed Point Location:** [11.3 mm from edge]
+* **Material:** Stainless Steel
+* **Feed Point Location:** 11.3 mm from edge
