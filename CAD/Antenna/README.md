@@ -10,8 +10,8 @@ This folder contains the CAD files, and physical specifications for the antenna.
 ---
 
 ## Files
-* `Horn_Antenna.SLDPRT` – Native SolidWorks part file.
-* `Horn_Antenna.STEP` – Universal CAD format for cross-platform compatibility.
+* `Horn_Antenna_15dBi.SLDPRT` – Native SolidWorks part file.
+* `Horn_Antenna_15dBi.STEP` – Universal CAD format for cross-platform compatibility.
 
 ## Manufacturing Specs
 * **Material:** Stainless Steel
