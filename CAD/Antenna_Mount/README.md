@@ -4,14 +4,18 @@ This directory contains the CAD models, part files, and physical specifications 
 
 ---
 
-## Design Preview & Assembly Structure
+## Design & Physical Hardware Preview
 
-![Antenna Mount Assembly Preview](./assembly_preview.png)
-*Figure 1: Dual horn antenna array with crossbar mounting frame and waveguide clips.*
+| CAD Model Render | Real-World Field Setup |
+| :---: | :---: |
+| <img src="./assembly_preview.png" height="320"> | <img src="./field_setup.jpeg" height="320"> |
+| *Figure 1: SolidWorks CAD assembly model.* | *Figure 2: Physical hardware mounted on tripod during outdoor testing.* |
+---
 
-### Primary Assembly Hierarchy
-* **Top-Level Assembly:** `Final_Assy.SLDASM`
-* **Sub-Assembly:** `Horn_Antenna_Single_Assy.SLDASM`
+## Assembly & Mounting Setup
+
+* **Fasteners:** Waveguide clips and crossbar attachments are securely fastened using standard **nuts and bolts** for rigid mechanical alignment.
+* **Support Base:** The crossbar assembly features a tripod adapter mount, allowing the entire dual-horn structure to be mounted on a **Velbon DV-7000N tripod** for flexible height and tilt adjustments during field testing.
 
 ---
 
@@ -35,7 +39,7 @@ This directory contains the CAD models, part files, and physical specifications 
 | :--- | :--- | :--- |
 | **Horn Antenna Body** | Handmade (Welded Stainless Steel) | Custom sheet metal fabrication; designed for **15 dBi target gain** @ 5.8 GHz |
 | **Crossbar Mount** | 3D-Printed (PLA/PETG) | Structural frame aligning dual horn antennas with fixed spacing |
-| **Waveguide Mount Clip** | 3D-Printed (PLA/PETG) | Custom clip securing stainless steel horns to crossbar support |
+| **Waveguide Mount Clip** | 3D-Printed (PLA/PETG) | Custom clip securing stainless steel horns to crossbar support via nuts & bolts |
 
 ---
 
