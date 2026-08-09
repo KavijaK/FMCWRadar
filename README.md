@@ -30,6 +30,7 @@ This project is built as a complete radar acquisition platform:
 - An STM32F429 captures the ADC data using hardware peripherals.
 - USB High Speed streams raw radar frames to a host computer.
 - Host-side DSP can perform range FFTs, velocity estimation, and breathing-rate experiments.
+- Custom 15 dBi welded stainless steel horn antenna array with a 3D-printed tripod mount for high-directivity 5.8 GHz FMCW RF capture.
 
 The main design goal is to keep acquisition deterministic. The STM32 does not manually sample the ADC in a software loop. Instead, the radar uses clocked hardware capture, DMA buffering, and USB streaming so the raw waveform can be moved to the computer reliably.
 
@@ -126,10 +127,11 @@ One important timing item is still under review: the acquisition architecture as
 
 | Folder | Contents |
 | --- | --- |
-| `Hardware/` | PCB design, schematic, BOM, and mechanical work. |
-| `Firmware/` | STM32 acquisition firmware and host capture tools. |
-| `DSP/` | Signal-processing work for range, velocity, and breathing-rate estimation. |
+| `CAD/` | Mechanical 3D models, horn antenna array, crossbar mounts, and STEP export files. |
 | `Docs/` | Supporting documentation and project notes. |
+| `DSP/` | Signal-processing work for range, velocity, and breathing-rate estimation. |
+| `Firmware/` | STM32 acquisition firmware and host capture tools. |
+| `Hardware/` | PCB design, schematic, BOM, and hardware design assets. |
 
 ## Goal
 
